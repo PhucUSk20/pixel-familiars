@@ -1,0 +1,12 @@
+**
+!package.json
+!README.md
+!LICENSE
+!dist/extension.cjs
+!dist/webview.js
+!dist/hook.cjs
+!dist/mcp.mjs
+!media/**
+!plugins/pixel-pet/assets/*.json
+!docs/CODEX.md
+!plugins/pixel-pet/skills/pixel-pet/FORMAT.md

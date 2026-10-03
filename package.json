@@ -1,0 +1,164 @@
+{
+  "name": "pixel-pet-codex",
+  "displayName": "Pixel Pet for Codex",
+  "description": "An animated pixel companion for local Codex sessions in VS Code.",
+  "publisher": "pixel-pet-local",
+  "version": "0.2.1",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Namenomeaning/pixel-pet.git"
+  },
+  "engines": {
+    "vscode": "^1.96.0"
+  },
+  "categories": [
+    "Other"
+  ],
+  "main": "./dist/extension.cjs",
+  "extensionKind": [
+    "workspace"
+  ],
+  "activationEvents": [
+    "onStartupFinished"
+  ],
+  "capabilities": {
+    "untrustedWorkspaces": {
+      "supported": false
+    },
+    "virtualWorkspaces": false
+  },
+  "contributes": {
+    "commands": [
+      {
+        "command": "pixelPet.open",
+        "title": "Pixel Pet: Open Companion"
+      },
+      {
+        "command": "pixelPet.selectSession",
+        "title": "Pixel Pet: Select Codex Session"
+      },
+      {
+        "command": "pixelPet.importTheme",
+        "title": "Pixel Pet: Import Theme"
+      },
+      {
+        "command": "pixelPet.resetTheme",
+        "title": "Pixel Pet: Reset to Slime"
+      },
+      {
+        "command": "pixelPet.demo",
+        "title": "Pixel Pet: Toggle Demo"
+      },
+      {
+        "command": "pixelPet.setup",
+        "title": "Pixel Pet: Set Up Codex Hooks and MCP"
+      },
+      {
+        "command": "pixelPet.preview",
+        "title": "Pixel Pet: Open Theme Preview"
+      },
+      {
+        "command": "pixelPet.reviewHooks",
+        "title": "Pixel Pet: Review Codex Hooks"
+      }
+    ],
+    "viewsContainers": {
+      "panel": [
+        {
+          "id": "pixelPet",
+          "title": "Pixel Pet",
+          "icon": "media/pet.svg"
+        }
+      ]
+    },
+    "views": {
+      "pixelPet": [
+        {
+          "type": "webview",
+          "id": "pixelPet.companion",
+          "name": "Codex Companion"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "Pixel Pet",
+      "properties": {
+        "pixelPet.codexHome": {
+          "type": "string",
+          "default": "",
+          "scope": "machine",
+          "description": "Codex home directory. Empty uses CODEX_HOME or ~/.codex on the extension host."
+        },
+        "pixelPet.includeCli": {
+          "type": "boolean",
+          "default": false,
+          "description": "Also observe CLI sessions in this workspace."
+        },
+        "pixelPet.showTargets": {
+          "type": "boolean",
+          "default": false,
+          "description": "Show short tool targets. Leave off when sharing your screen."
+        },
+        "pixelPet.speed": {
+          "type": "string",
+          "enum": [
+            "slow",
+            "normal",
+            "fast"
+          ],
+          "default": "normal"
+        },
+        "pixelPet.sleepAfter": {
+          "type": "number",
+          "minimum": 0,
+          "default": 60,
+          "description": "Idle seconds before sleeping. Zero disables sleep."
+        },
+        "pixelPet.showHud": {
+          "type": "boolean",
+          "default": true
+        },
+        "pixelPet.themeFile": {
+          "type": "string",
+          "default": "",
+          "description": "Optional theme JSON path, relative to the first workspace folder or absolute. Reloaded when saved."
+        },
+        "pixelPet.showMinis": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show minis for subagent lifecycle events."
+        },
+        "pixelPet.showStatusLine": {
+          "type": "boolean",
+          "default": true,
+          "description": "Show the pet's activity text."
+        }
+      }
+    }
+  },
+  "scripts": {
+    "install:codex": "node tools/codex/install-all.mjs",
+    "build": "node tools/codex/build.mjs",
+    "typecheck": "tsc -p tsconfig.codex.json",
+    "test": "tsx --test extensions/codex/test/*.test.ts",
+    "vscode:prepublish": "npm run typecheck && npm run build",
+    "package": "vsce package --no-dependencies -o dist/pixel-pet-codex.vsix",
+    "test:ui": "node tools/codex/smoke.mjs",
+    "diagnose": "tsx tools/codex/diagnose.ts",
+    "setup": "tsx tools/codex/install.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^22.0.0",
+    "@types/vscode": "~1.96.0",
+    "@vscode/vsce": "^4.0.0",
+    "esbuild": "^0.25.0",
+    "playwright": "^1.63.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  },
+  "type": "module",
+  "dependencies": {
+    "@modelcontextprotocol/sdk": "^1.32.0"
+  }
+}

@@ -7,3 +7,5 @@ node_modules/
 .vscode/
 Thumbs.db
 tools/preview/preview.html
+dist/
+*.vsix

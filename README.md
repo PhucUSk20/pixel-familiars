@@ -4,6 +4,24 @@
 
 <h1 align="center">pixel-pet</h1>
 
+> **Codex VS Code fork:** this working copy adds **Pixel Pet for Codex**, a companion panel using the original pixel engine. See [docs/CODEX.md](docs/CODEX.md) for installation, settings, privacy and limitations. The Claude instructions below describe the preserved upstream plugin.
+
+## Codex VS Code — this fork
+
+Inside this cloned repo, install with one command (Node 22.18+, VS Code `code` command and the Codex extension required):
+
+```powershell
+npm.cmd run install:codex -- --no-review
+```
+
+Version **0.2.1** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools in one command. `--no-review` skips opening the Codex CLI; no hook trust step is required for **Log fallback**. After installation, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.
+
+Optional: to enable **Direct hooks**, run **Pixel Pet: Review Codex Hooks** in VS Code, enter `/hooks`, and review/trust the **Pixel Pet observer** entries. Then reload VS Code and start a new Codex conversation. This is optional and is not part of the one-command installation.
+
+Ask Codex to customize the pet through `get_theme`, `get_theme_format`, `preview_theme`, and `set_theme`. The **Preview** button opens the generated page. For installation/build commands and remaining differences, read [the Codex guide](docs/CODEX.md).
+
+## Original Claude Code plugin
+
 <p align="center">
   A pixel pet for the Claude Code terminal. It acts out what Claude is doing,<br>
   and a game-style HUD below the prompt keeps your context and rate limits in view.
