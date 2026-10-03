@@ -5,6 +5,7 @@ import { animate, readTheme, restingFrame } from '../../plugins/pixel-pet/hooks/
 import { previewPage } from '../../plugins/pixel-pet/hooks/preview'
 import { object } from './protocol'
 import { bridgeRoot, readJson, saveTheme, storedTheme, atomicJson } from './bridge'
+import { bundledTheme } from './scene-theme'
 
 export class ThemeTools {
   private previewed: unknown
@@ -15,7 +16,7 @@ export class ThemeTools {
     const saved = await storedTheme(this.home)
     if ((!saved || active.revision === saved.revision) && active.theme) return active.theme
     if (saved?.theme) return saved.theme
-    return JSON.parse(await readFile(join(this.assets, 'assets', 'slime.json'), 'utf8'))
+    return bundledTheme(JSON.parse(await readFile(join(this.assets, 'assets', 'slime.json'), 'utf8')))
   }
   async format(): Promise<string> { return readFile(join(this.assets, 'skills', 'pixel-pet', 'FORMAT.md'), 'utf8') }
   async call(name: string, argumentsValue: unknown): Promise<Record<string, unknown>> {

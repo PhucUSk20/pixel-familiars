@@ -9,6 +9,7 @@ import { discoverSessions, SessionTail, type Session } from './sessions'
 import { emptySnapshot, object, type Preferences } from './protocol'
 import { bridgeRoot, eventPath, atomicJson, storedTheme, saveTheme, readJson } from './bridge'
 import { installBridge } from './install'
+import { bundledTheme, meadowTheme } from './scene-theme'
 
 const config = () => vscode.workspace.getConfiguration('pixelPet')
 const home = () => config().get<string>('codexHome') || process.env.CODEX_HOME || join(homedir(), '.codex')
@@ -82,13 +83,16 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     const script = view.webview.asWebviewUri(vscode.Uri.joinPath(this.context.extensionUri, 'dist', 'webview.js'))
     const nonce = randomBytes(16).toString('hex')
     view.webview.html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}';"><style nonce="${nonce}">
-      body{font-family:var(--vscode-font-family,system-ui,sans-serif);color:var(--vscode-foreground,#ddd);background:var(--vscode-editor-background,#1e1e1e);padding:16px;margin:0}header{display:flex;align-items:center;gap:10px}h2{font-size:14px;margin:0;flex:1}button{background:var(--vscode-button-secondaryBackground,#333);color:var(--vscode-button-secondaryForeground,#eee);border:0;padding:6px 10px;cursor:pointer;border-radius:4px}button:focus-visible{outline:2px solid var(--vscode-focusBorder,#5aa9ff)}#stage{width:100%;height:130px;image-rendering:pixelated}#status{font-size:13px;min-height:20px}#connection,#activity{font-size:11px;opacity:.7;margin:8px 0;overflow-wrap:anywhere}#hud{border:2px solid #5aa9ff;padding:4px 10px;max-width:520px}.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:7px 0}.bar label{min-width:48px;white-space:pre;font-family:monospace}.bar canvas{image-rendering:pixelated}.bar span{font-size:12px}footer{display:flex;gap:8px;margin-top:12px}
-      </style></head><body><header><h2>Pixel Pet · Codex</h2><button id="session">Session</button></header><div id="connection" role="status">Connecting…</div><canvas id="stage" aria-label="Animated pixel pet"></canvas><div id="status"></div><div id="activity" role="status"></div><div id="hud"></div><footer><button id="theme">Import theme</button><button id="preview">Preview</button><button id="demo">Demo</button></footer><script nonce="${nonce}" src="${script}"></script></body></html>`
+      body{font-family:var(--vscode-font-family,system-ui,sans-serif);color:var(--vscode-foreground,#ddd);background:var(--vscode-editor-background,#1e1e1e);padding:16px;margin:0}header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}h2{font-size:14px;margin:0;flex:1}button{background:var(--vscode-button-secondaryBackground,#333);color:var(--vscode-button-secondaryForeground,#eee);border:0;padding:6px 10px;cursor:pointer;border-radius:4px}button:focus-visible{outline:2px solid var(--vscode-focusBorder,#5aa9ff)}#stage{width:100%;height:130px;image-rendering:pixelated}#status{font-size:13px;min-height:20px}#connection,#activity{font-size:11px;opacity:.7;margin:8px 0;overflow-wrap:anywhere}#hud{border:2px solid #5aa9ff;padding:4px 10px;max-width:520px}.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:7px 0}.bar label{min-width:48px;white-space:pre;font-family:monospace}.bar canvas{image-rendering:pixelated}.bar span{font-size:12px}footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+      </style></head><body><header><h2>Pixel Pet · Codex</h2><button id="session">Session</button></header><div id="connection" role="status">Connecting…</div><canvas id="stage" aria-label="Animated pixel pet"></canvas><div id="status"></div><div id="activity" role="status"></div><div id="hud"></div><footer><button id="pet">Pet</button><button id="scene">Scene</button><button id="theme">Import theme</button><button id="preview">Preview</button><button id="reset">Reset</button><button id="demo">Demo</button></footer><script nonce="${nonce}" src="${script}"></script></body></html>`
     this.context.subscriptions.push(view.webview.onDidReceiveMessage((message: unknown) => {
       const action = object(message).type
       if (action === 'ready') void this.reloadTheme().then(() => this.poll(true)).catch(e => this.report(e))
       if (action === 'session') void vscode.commands.executeCommand('pixelPet.selectSession')
       if (action === 'theme') void vscode.commands.executeCommand('pixelPet.importTheme')
+      if (action === 'pet') void this.selectPet()
+      if (action === 'scene') void this.selectScene()
+      if (action === 'reset') void this.resetTheme().catch(e => this.report(e))
       if (action === 'demo') this.toggleDemo()
       if (action === 'preview') void this.openPreview()
     }))
@@ -101,7 +105,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
       const imported = this.context.globalState.get<unknown>('theme')
       const path = configured ? isAbsolute(configured) ? configured : join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', configured) : undefined
       if (path && (await stat(path)).size > 1024 * 1024) throw new Error('Theme exceeds 1 MB.')
-      const data = path ? JSON.parse(await readFile(path, 'utf8')) : imported ?? JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8'))
+      const data = path ? JSON.parse(await readFile(path, 'utf8')) : imported ?? bundledTheme(JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8')))
       const result = readTheme(data)
       if (result.errors) throw new Error(result.errors.join(' '))
       this.theme = result.theme
@@ -118,7 +122,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
       this.report(error)
       // Keep the last valid theme, or use the bundled slime on first load.
       if (!this.theme) {
-        this.theme = JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8'))
+        this.theme = bundledTheme(JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8')))
       }
       await this.view?.webview.postMessage({ type: 'theme', theme: this.theme, preferences: preferences() })
     }
@@ -192,6 +196,32 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     await saveTheme(home(), null)
     await this.syncSavedTheme()
   }
+  async selectPet(): Promise<void> {
+    const picked = await vscode.window.showQuickPick([
+      { label: 'Slime', description: 'Blue slime in a meadow', asset: 'slime' },
+      { label: 'Duck', description: 'Rubber duck in a meadow', asset: 'duck' },
+      { label: 'Alien', description: 'Alien with its original space scene, props and HUD', asset: 'alien' },
+    ], { title: 'Pixel Pet: Choose a bundled theme (replaces the current theme)' })
+    if (!picked) return
+    try {
+      const value = JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets', `${picked.asset}.json`).fsPath, 'utf8'))
+      await saveTheme(home(), bundledTheme(value))
+      await this.syncSavedTheme()
+    } catch (error) { this.report(error); await vscode.window.showErrorMessage('Could not select the pet theme. See the Pixel Pet output channel.') }
+  }
+  async selectScene(): Promise<void> {
+    const picked = await vscode.window.showQuickPick([
+      { label: 'Meadow', description: 'Grass, sun, rocks, flowers and drifting clouds', scene: 'meadow' },
+      { label: 'No scene', description: 'Keep the pet, props and HUD; remove the background', scene: 'none' },
+    ], { title: 'Pixel Pet: Choose a scene' })
+    if (!picked) return
+    try {
+      if (!this.theme) await this.reloadTheme()
+      const value = picked.scene === 'meadow' ? meadowTheme(this.theme) : { ...object(this.theme), scene: null }
+      await saveTheme(home(), value)
+      await this.syncSavedTheme()
+    } catch (error) { this.report(error); await vscode.window.showErrorMessage('Could not select the scene. See the Pixel Pet output channel.') }
+  }
   async openPreview(): Promise<void> {
     try {
       const data = object(await readJson(join(bridgeRoot(home()), 'latest-preview.json')))
@@ -238,6 +268,8 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('pixelPet.open', () => vscode.commands.executeCommand('pixelPet.companion.focus')),
     vscode.commands.registerCommand('pixelPet.selectSession', () => companion.selectSession()),
     vscode.commands.registerCommand('pixelPet.importTheme', () => companion.importTheme()),
+    vscode.commands.registerCommand('pixelPet.selectPet', () => companion.selectPet()),
+    vscode.commands.registerCommand('pixelPet.selectScene', () => companion.selectScene()),
     vscode.commands.registerCommand('pixelPet.resetTheme', () => companion.resetTheme()),
     vscode.commands.registerCommand('pixelPet.setup', () => companion.setup()),
     vscode.commands.registerCommand('pixelPet.preview', () => companion.openPreview()),

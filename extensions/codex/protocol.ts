@@ -45,11 +45,31 @@ export function codexUsage(payload: Record<string, unknown>): Usage {
 export function classifyTool(name: string, input: unknown): { mode: ToolMode; target: string } {
   const data = typeof input === 'string' ? (() => { try { return object(JSON.parse(input)) } catch { return { input } } })() : object(input)
   const shortName = name.split('__').pop()?.split('.').pop() ?? name
+  // Log fallback may contain only the orchestration wrapper. Use static hints for
+  // a single tool kind; never execute its source or claim individual nested events.
+  if (shortName === 'exec') {
+    const source = String(data.code ?? data.input ?? '')
+    if (source.length <= 64 * 1024) {
+      const calls = [...source.matchAll(/\btools\.([A-Za-z][A-Za-z0-9_]*)\s*\(/g)].map(match => match[1])
+      if (calls.length && calls.every(call => call !== 'exec')) {
+        const literal = source.match(/\bcmd\s*:\s*("(?:\\.|[^"\\])*"|'(?:\\.|[^'\\])*')/)
+        let command = ''
+        if (literal) {
+          try { command = literal[1].startsWith('"') ? JSON.parse(literal[1]) : literal[1].slice(1, -1).replace(/\\(['\\])/g, '$1') } catch { /* Nonliteral command: keep the generic tool mode. */ }
+        }
+        const classified = calls.map(call => classifyTool(call, call === 'exec_command' ? { cmd: command } : {}))
+        if (classified.every(tool => tool.mode === classified[0].mode) && (classified[0].mode !== 'bash' || command)) {
+          return { mode: classified[0].mode, target: classified[0].target }
+        }
+      }
+    }
+    return { mode: 'bash', target: name }
+  }
   let mode: ToolMode = 'bash'
-  if (/read_file|Read|view_image/.test(shortName)) mode = 'read'
-  else if (/search|grep|glob|find/.test(shortName)) mode = /web|browse/.test(name) ? 'web' : 'search'
+  if (/web|browse|fetch/.test(name)) mode = 'web'
+  else if (/read_file|Read|view_image|read_resource/.test(shortName)) mode = 'read'
+  else if (/search|grep|glob|find/.test(shortName)) mode = 'search'
   else if (/apply_patch|edit|write_file/.test(shortName)) mode = 'edit'
-  else if (/web|browse|fetch/.test(name)) mode = 'web'
   else if (/agent|spawn|collaboration/.test(name)) mode = 'agent'
   const command = String(data.cmd ?? data.command ?? '')
   if (mode === 'bash' && /^(?:rg|grep|find|Get-ChildItem|Select-String)\b/i.test(command.trim())) mode = 'search'
@@ -107,6 +127,7 @@ export class SessionReducer {
           this.snapshot.working = false
           this.calls.clear()
           this.agents.clear()
+          for (const [id, agent] of this.agentStates) if (agent.doneAt === undefined) this.agentStates.set(id, { ...agent, doneAt: at })
           break
         case 'token_count': this.snapshot.usage = codexUsage(payload); break
         case 'error': this.snapshot.errorAt = at; break
@@ -122,18 +143,25 @@ export class SessionReducer {
       } else if ((payload.type === 'function_call_output' || payload.type === 'custom_tool_call_output') && id) {
         const tool = this.calls.get(id)
         this.calls.delete(id)
+        const active = [...this.calls.values()].at(-1)
+        if (active) Object.assign(this.snapshot, active)
         this.snapshot.lastToolAt = at
         if (payload.is_error === true || toolFailed(payload.output)) this.snapshot.errorAt = at
         // Spawn results contain agent IDs; only retain IDs, never messages.
         if (tool?.mode === 'agent') {
           let result = object(payload.output)
           if (typeof payload.output === 'string') { try { result = object(JSON.parse(payload.output)) } catch { /* Plain tool output has no structured agent ID. */ } }
-          if (typeof result.agent_id === 'string') this.agents.add(result.agent_id)
+          if (typeof result.agent_id === 'string') {
+            this.agents.add(result.agent_id)
+            if (!this.agentStates.has(result.agent_id)) this.agentStates.set(result.agent_id, { id: result.agent_id, since: at })
+          }
         }
       }
     }
     this.snapshot.tools = this.calls.size
     this.snapshot.agents = [...this.agents].slice(0, 16)
+    if (this.agentStates.size) this.snapshot.agentStates = [...this.agentStates.values()].slice(-64)
+    while (this.agentStates.size > 64) this.agentStates.delete(this.agentStates.keys().next().value!)
   }
 
   private applyHook(payload: Record<string, unknown>, at: number): void {

@@ -1,5 +1,5 @@
 import { animate, readTheme } from '../../plugins/pixel-pet/hooks/theme'
-import { compose, canvas, trailWidth, MAX_MINIS, type Body, type Canvas } from '../../plugins/pixel-pet/hooks/pixels'
+import { compose, canvas, trailWidth, BODY_W, MAX_MINIS, type Body, type Canvas } from '../../plugins/pixel-pet/hooks/pixels'
 import { step, fail, leapClipMs, type Activity } from '../../plugins/pixel-pet/hooks/anim'
 import { drawBand, layScene, obstacleSpans } from '../../plugins/pixel-pet/hooks/scene'
 import { statusLine, lineColor } from '../../plugins/pixel-pet/hooks/status'
@@ -8,6 +8,7 @@ import { minisOnScreen } from '../../plugins/pixel-pet/hooks/minis'
 import { hudRows, frameColor } from '../../plugins/pixel-pet/hooks/hud'
 import type { Anim, Mode } from '../../plugins/pixel-pet/types'
 import { emptySnapshot, object, type Preferences, type Snapshot } from './protocol'
+import { compactionBath } from './compaction'
 
 declare function acquireVsCodeApi(): { postMessage(message: unknown): void }
 const vscode = acquireVsCodeApi()
@@ -25,17 +26,22 @@ let demoSince = Date.now()
 let lastError = 0
 let sessionId: string | undefined
 let lastHud = ''
+let compactSince = 0
 
-for (const [id, type] of [['session', 'session'], ['theme', 'theme'], ['demo', 'demo'], ['preview', 'preview']]) {
+for (const [id, type] of [['session', 'session'], ['theme', 'theme'], ['pet', 'pet'], ['scene', 'scene'], ['reset', 'reset'], ['demo', 'demo'], ['preview', 'preview']]) {
   document.getElementById(id)!.addEventListener('click', () => vscode.postMessage({ type }))
 }
 window.addEventListener('message', (event: MessageEvent) => {
   const message = object(event.data)
   if (message.type === 'theme') {
     const theme = readTheme(message.theme)
-    if (!theme.errors) body = animate(theme.theme)
+    if (!theme.errors) {
+      body = animate(theme.theme)
+      animation = { mode: 'idle', since: Date.now(), x: 0, dir: 1, tick: 0, target: '', working: snapshot.working }
+    }
   }
   if (message.type === 'activity') {
+    if (object(message.snapshot).compacting && !snapshot.compacting) compactSince = Date.now()
     snapshot = message.snapshot as Snapshot
     if (snapshot.sessionId !== sessionId) {
       sessionId = snapshot.sessionId
@@ -72,6 +78,7 @@ function drawHud(data: Snapshot, now: number): void {
   if (key === lastHud) return
   lastHud = key
   hud.replaceChildren()
+  hud.hidden = !preferences.hud
   if (!preferences.hud) return
   hud.style.borderColor = frameColor(look ?? {})
   const minutes = (reset: number | undefined) => reset === undefined ? undefined : Math.max(0, Math.round((reset * 1000 - now) / 60000))
@@ -79,6 +86,7 @@ function drawHud(data: Snapshot, now: number): void {
   for (const bar of rows) {
     const row = document.createElement('div'); row.className = 'bar'
     const label = document.createElement('label'); label.textContent = bar.label; label.style.color = bar.color
+    label.title = bar.key === 'hp' ? 'Context space remaining in this conversation' : bar.key === 'mp' ? 'Usage quota remaining in the 5-hour window' : 'Usage quota remaining in the 7-day window'
     const meter = document.createElement('canvas'); meter.width = 120; meter.height = 12
     meter.setAttribute('role', 'img'); meter.setAttribute('aria-label', `${bar.label.trim()}: ${bar.parts.map(part => part.text).join('')}`)
     const ctx = meter.getContext('2d')!
@@ -102,6 +110,7 @@ function drawHud(data: Snapshot, now: number): void {
     const reading = document.createElement('span'); reading.textContent = '—'; reading.setAttribute('aria-label', 'unavailable')
     row.append(label, reading); hud.append(row)
   }
+  hud.hidden = hud.childElementCount === 0
 }
 
 function simulated(now: number): Snapshot {
@@ -120,26 +129,31 @@ setInterval(() => {
   const layout = body.scene ? layScene(body.scene, width) : undefined
   const minis = preferences.minis === false ? [] : data.agentStates ? minisOnScreen(data.agentStates, now) : data.agents.map(() => ({ age: now - animation.since }))
   const newAgent = data.agentStates?.some(a => !a.doneAt && now - a.since < 1500) ?? false
+  // Fast tools can start and finish between observer polls. Briefly retain the
+  // last observed prop, while the counter continues to show actual active calls.
+  const recentTool = data.lastToolAt > 0 && now >= data.lastToolAt && now - data.lastToolAt < 1200
   const trail = trailWidth(minis.length)
-  const activity: Activity = { isWorking: data.working, activeTools: data.tools || (newAgent ? 1 : 0), activeMode: data.tools ? data.mode : newAgent ? 'agent' : data.mode, activeTarget: preferences.targets ? data.target : '', lastToolAt: data.lastToolAt, room: Math.max(0, width - 40 - trail), obstacles: layout ? obstacleSpans(layout) : [], trail }
-  animation = step(animation, activity, now, settings)
+  const activity: Activity = { isWorking: data.working || recentTool, activeTools: data.tools || (recentTool || newAgent ? 1 : 0), activeMode: data.tools || recentTool ? data.mode : newAgent ? 'agent' : data.mode, activeTarget: preferences.targets ? data.target : '', lastToolAt: data.lastToolAt, room: Math.max(0, width - BODY_W - trail), obstacles: layout ? obstacleSpans(layout) : [], trail }
+  if (!data.compacting) animation = step(animation, activity, now, settings)
   if (data.errorAt && data.errorAt !== lastError) { animation = fail(animation, now); lastError = data.errorAt }
   const elapsed = now - animation.since
-  const mode = animation.leap ? 'jump' : animation.mode
+  const mode = data.compacting ? 'sleep' : animation.leap ? 'jump' : animation.mode
   const ms = animation.leap ? leapClipMs((now - animation.leap.since) * settings.pace) : elapsed * settings.pace
   const mood = data.usage.hp !== undefined && data.usage.hp <= 25 ? 'critical' : data.usage.hp !== undefined && data.usage.hp <= 50 ? 'worried' : [data.usage.mp, data.usage.st].some(v => v !== undefined && v < 20) ? 'tired' : 'ok'
-  const picture = compose(body, mode, ms, animation.dir, mood, minis)
+  const posed = compose(body, mode, ms, animation.dir, mood, minis)
+  const picture = data.compacting ? compactionBath(posed, animation.dir, now - compactSince) : posed
+  const left = Math.max(0, Math.min(Math.round(animation.x), width - picture.w))
   let band: Canvas
-  if (body.scene && layout) band = drawBand(body, body.scene, layout, picture, Math.round(animation.x), now)
+  if (body.scene && layout) band = drawBand(body, body.scene, layout, picture, left, now)
   else {
     band = canvas(width, picture.h)
     // Copy numeric pixels without turning theme data into markup.
-    const left = Math.min(Math.round(animation.x), Math.max(0, width - picture.w))
     for (let y = 0; y < picture.h; y++) for (let x = 0; x < picture.w; x++) if (x + left < width) band.px[y * width + x + left] = picture.px[y * picture.w + x]
   }
   paint(band)
-  stage.setAttribute('aria-label', `${body.name}, ${animation.mode}`)
-  document.getElementById('activity')!.textContent = `${data.tools} tool${data.tools === 1 ? '' : 's'} · ${data.agents.length} agent${data.agents.length === 1 ? '' : 's'}`
+  stage.setAttribute('aria-label', `${body.name}, ${data.compacting ? 'compacting' : mode}`)
+  stage.dataset.scene = body.scene ? 'on' : 'off'
+  document.getElementById('activity')!.textContent = `${data.tools} active tool${data.tools === 1 ? '' : 's'} · ${data.agents.length} active agent${data.agents.length === 1 ? '' : 's'}`
   const extra = minis.length > MAX_MINIS ? ` (+${minis.length - MAX_MINIS} minis)` : ''
   status.textContent = preferences.statusLine === false ? '' : data.awaitingApproval ? 'Waiting for your approval' : data.compacting ? 'Compacting context…' : statusLine(animation.mode, animation.since, elapsed, preferences.targets ? animation.target : '', body.look.lines[animation.mode]) + extra
   status.style.color = lineColor(animation.mode, body.look.lineColors)

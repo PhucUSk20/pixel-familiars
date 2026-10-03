@@ -7,6 +7,8 @@ description: Customize this fork's Codex companion pet, props, scene, status lin
 
 Read `plugins/pixel-pet/skills/pixel-pet/FORMAT.md`. Start from `plugins/pixel-pet/assets/slime.json`, `duck.json`, or `alien.json`; preserve unspecified fields.
 
+Prefer MCP `get_theme` as the starting point: the Codex bundled slime/duck includes a meadow that is not in the upstream asset. Panel **Pet** selects bundled themes, **Scene** replaces only the background, and **Reset** restores slime with its meadow. Imported/MCP themes with no scene intentionally render without a background.
+
 1. When the Pixel Pet MCP server is connected, call `get_theme` and `get_theme_format`. Start edits from the current theme; preserve unspecified fields.
 2. Call `preview_theme` with the full modified theme. It validates/repairs and writes an HTML preview of all motions/faces/props/scene/HUD. Give the user its path or direct them to the companion's **Preview** button. A preview alone must not change the active pet.
 3. Call `set_theme` when the user requests applying the change. Omit `theme` to apply the last preview in this MCP connection, pass the full object for an explicit theme, or null to restore the slime. It persists across sessions and immediately updates the open companion. Applying through MCP clears a configured `themeFile` override in the companion.

@@ -14,7 +14,9 @@ Inside this cloned repo, install with one command (Node 22.18+, VS Code `code` c
 npm.cmd run install:codex -- --no-review
 ```
 
-Version **0.2.1** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools in one command. `--no-review` skips opening the Codex CLI; no hook trust step is required for **Log fallback**. After installation, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.
+Version **0.2.2** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools in one command. `--no-review` skips opening the Codex CLI; no hook trust step is required for **Log fallback**. After installation, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.
+
+The default Codex slime has a meadow with grass, sun, rocks, flowers and drifting clouds. **Pet** selects Slime, Duck or Alien; **Scene** changes the background while keeping the pet; **Reset** restores the default. Existing custom themes keep their own scene (or no scene). Reading, searching, web, editing and terminal props use the same pixel engine as Claude. Short tool actions remain visible briefly even when the active-tool counter has already returned to zero.
 
 Optional: to enable **Direct hooks**, run **Pixel Pet: Review Codex Hooks** in VS Code, enter `/hooks`, and review/trust the **Pixel Pet observer** entries. Then reload VS Code and start a new Codex conversation. This is optional and is not part of the one-command installation.
 

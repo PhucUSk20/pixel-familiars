@@ -24,6 +24,7 @@ const commands = new Map()
 const terminalCommands = []
 const state = new Map()
 const options = { codexHome: directory }
+let pickLabel
 let provider, receive, html = '', page
 const disposable = () => ({ dispose() {} })
 const vscode = {
@@ -40,7 +41,7 @@ const vscode = {
     showInformationMessage: async () => undefined,
     createOutputChannel: () => ({ appendLine: console.log, dispose() {} }),
     registerWebviewViewProvider: (_id, value) => { provider = value; return disposable() },
-    showQuickPick: async items => items[0], showErrorMessage: async message => { throw new Error(message) },
+    showQuickPick: async items => pickLabel ? items.find(item => item.label === pickLabel) : items[0], showErrorMessage: async message => { throw new Error(message) },
   },
   ConfigurationTarget: { Workspace: 2 },
 }
@@ -77,6 +78,27 @@ try {
   await page.goto(url)
   await page.waitForFunction(() => document.querySelector('#connection').textContent.includes('smoke-se'))
   await page.waitForFunction(() => document.querySelector('#status').textContent.length > 0)
+  await page.waitForFunction(() => document.querySelector('#stage').dataset.scene === 'on')
+  const scenePixels = await page.locator('#stage').evaluate(canvas => {
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data
+    const count = color => { let n = 0; for (let i = 0; i < data.length; i += 4) if (data[i] === color[0] && data[i + 1] === color[1] && data[i + 2] === color[2] && data[i + 3]) n++; return n }
+    return { ground: count([49, 91, 53]), sky: count([255, 226, 138]), rock: count([120, 131, 140]) }
+  })
+  assert.ok(scenePixels.ground > 0 && scenePixels.sky > 0 && scenePixels.rock > 0, 'default meadow must visibly paint ground, sky and obstacles')
+  await page.screenshot({ path: 'dist/codex-meadow.png' })
+  pickLabel = 'No scene'
+  await page.click('#scene')
+  await page.waitForFunction(() => document.querySelector('#stage').dataset.scene === 'off')
+  pickLabel = 'Meadow'
+  await page.click('#scene')
+  await page.waitForFunction(() => document.querySelector('#stage').dataset.scene === 'on')
+  pickLabel = 'Alien'
+  await page.click('#pet')
+  await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').startsWith('alien,'))
+  await page.screenshot({ path: 'dist/codex-alien.png' })
+  pickLabel = undefined
+  await page.click('#reset')
+  await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').startsWith('slime,'))
   await appendFile(log, record('event_msg', { type: 'task_started' }) + record('response_item', { type: 'function_call', call_id: 'test-call', name: 'read_file', arguments: '{"path":"private-name.ts"}' }) + record('event_msg', { type: 'token_count', info: { model_context_window: 100000, last_token_usage: { total_tokens: 25000 } }, rate_limits: { primary: { window_minutes: 300, used_percent: 20 } } }))
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('75%'))
   await page.waitForFunction(() => /reading|turning|skimming/.test(document.querySelector('#status').textContent))
@@ -84,6 +106,15 @@ try {
   const pixels = await page.locator('#stage').evaluate(canvas => [...canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data].filter((v, i) => i % 4 === 3 && v).length)
   assert.ok(pixels > 0, 'pet must paint nontransparent pixels')
   await page.screenshot({ path: 'dist/codex-companion.png' })
+  await appendFile(log, record('response_item', { type: 'function_call_output', call_id: 'test-call', output: '{}' }))
+  for (const [mode, source] of [['read', 'await tools.exec_command({cmd: "Get-Content app.ts"})'], ['search', 'await tools.exec_command({cmd: "rg theme"})'], ['web', 'await tools.web__run({})'], ['edit', 'await tools.apply_patch("patch")']]) {
+    await appendFile(log, record('response_item', { type: 'custom_tool_call', call_id: `fallback-${mode}`, name: 'functions.exec', input: source }))
+    await page.waitForFunction(mode => document.querySelector('#stage').getAttribute('aria-label').endsWith(`, ${mode}`), mode)
+    assert.ok((await page.locator('#connection').textContent()).includes('Log fallback'))
+    await appendFile(log, record('response_item', { type: 'custom_tool_call_output', call_id: `fallback-${mode}`, output: '{}' }))
+  }
+  await appendFile(log, record('response_item', { type: 'function_call', call_id: 'fast-tool', name: 'read_file', arguments: '{}' }) + record('response_item', { type: 'function_call_output', call_id: 'fast-tool', output: '{}' }))
+  await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', read') && document.querySelector('#activity').textContent.startsWith('0 active tools'))
   const hook = (hook_event_name, extra = {}) => {
     const output = execFileSync(process.execPath, ['dist/hook.cjs', '--home', directory], { cwd: root, input: JSON.stringify({ hook_event_name, session_id: 'smoke-session', cwd: root, turn_id: 'native-turn', ...extra }), encoding: 'utf8', windowsHide: true })
     assert.deepEqual(JSON.parse(output), {})
@@ -94,12 +125,42 @@ try {
   await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', edit'))
   assert.equal((await page.locator('#status').textContent()).includes('private-file'), false)
   hook('SubagentStart', { agent_id: 'subagent' })
-  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('1 agent'))
+  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('1 active agent'))
   await page.screenshot({ path: 'dist/codex-direct-hooks.png' })
   hook('SubagentStop', { agent_id: 'subagent', status: 'failed' })
-  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('0 agents'))
+  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('0 active agents'))
   hook('PostToolUse', { tool_name: 'apply_patch', tool_use_id: 'nested', tool_response: { exit_code: 1, output: 'private output' } })
   await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', error'))
+  hook('Stop')
+  for (const [name, input, mode] of [['read_file', {}, 'read'], ['exec_command', { cmd: 'rg theme' }, 'search'], ['web__run', {}, 'web'], ['apply_patch', {}, 'edit'], ['exec_command', { cmd: 'npm test' }, 'bash']]) {
+    if (mode === 'bash') {
+      await page.click('#reset')
+      await page.waitForTimeout(350)
+    }
+    hook('UserPromptSubmit')
+    hook('PreToolUse', { tool_name: name, tool_use_id: `motion-${mode}`, tool_input: input })
+    await page.waitForFunction(mode => document.querySelector('#stage').getAttribute('aria-label').endsWith(`, ${mode}`), mode)
+    await page.screenshot({ path: `dist/codex-motion-${mode}.png` })
+    hook('PostToolUse', { tool_use_id: `motion-${mode}`, tool_name: name, tool_response: {} })
+    await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', run'))
+    if (mode === 'bash') await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', jump'))
+    hook('Stop')
+  }
+  hook('UserPromptSubmit')
+  hook('PreCompact')
+  await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', compacting'))
+  await page.screenshot({ path: 'dist/codex-compacting.png' })
+  const bathPosition = () => page.locator('#stage').evaluate(canvas => {
+    const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data
+    for (let i = 0; i < data.length; i += 4) if (data[i] === 80 && data[i + 1] === 142 && data[i + 2] === 180 && data[i + 3]) return (i / 4) % canvas.width
+    return -1
+  })
+  const restingAt = await bathPosition()
+  assert.ok(restingAt >= 0, 'compaction must paint the bath')
+  await page.waitForTimeout(650)
+  assert.equal(await bathPosition(), restingAt, 'the pet must rest in place during compaction')
+  hook('PostCompact')
+  await page.waitForFunction(() => !document.querySelector('#stage').getAttribute('aria-label').endsWith(', compacting'))
   hook('Stop')
   client = new Client({ name: 'pixel-pet-smoke', version: '1.0.0' })
   await client.connect(new StdioClientTransport({ command: process.execPath, args: ['dist/mcp.mjs', '--home', directory, '--assets', join(root, 'plugins/pixel-pet')], cwd: root, stderr: 'pipe' }))
@@ -122,6 +183,10 @@ try {
   await page.waitForFunction(() => document.querySelector('#connection').textContent.includes('simulated'))
   await page.click('#demo')
   await page.waitForFunction(() => document.querySelector('#connection').textContent.includes('Following latest'))
+  await page.setViewportSize({ width: 320, height: 560 })
+  await page.waitForTimeout(250)
+  assert.ok(await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth), 'panel controls and HUD must fit a narrow sidebar')
+  await page.screenshot({ path: 'dist/codex-sidebar.png' })
   await commands.get('pixelPet.selectSession')()
   const theme = JSON.parse(await readFile('plugins/pixel-pet/assets/alien.json', 'utf8'))
   theme.name = '<script>throw new Error("injected")</script>'
@@ -134,7 +199,7 @@ try {
   await page.goto('file:///' + join(root, 'tools/preview/preview.html').replaceAll('\\', '/'))
   await page.waitForTimeout(400)
   assert.deepEqual(errors, [], 'upstream preview must run without JS errors')
-  console.log('PASS: Chromium + bundled host, JSONL fallback, hook subprocess/nested tools, subagent lifecycle/error, MCP stdio theme preview/apply/reset/resources, HUD/privacy/demo and upstream preview. Screenshot: dist/codex-companion.png')
+  console.log('PASS: default meadow, scene/pet selection/reset, read/search/web/edit/bash props, obstacle jumps, compaction bath, Chromium + bundled host, JSONL fallback, hook subprocess/nested tools, subagent lifecycle/error, MCP themes, HUD/privacy/demo and upstream preview. Screenshots: dist/codex-*.png')
 } finally {
   for (const subscription of subscriptions) subscription.dispose()
   await client?.close()

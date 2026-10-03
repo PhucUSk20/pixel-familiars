@@ -3,7 +3,7 @@
   "displayName": "Pixel Pet for Codex",
   "description": "An animated pixel companion for local Codex sessions in VS Code.",
   "publisher": "pixel-pet-local",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -41,6 +41,14 @@
       {
         "command": "pixelPet.importTheme",
         "title": "Pixel Pet: Import Theme"
+      },
+      {
+        "command": "pixelPet.selectPet",
+        "title": "Pixel Pet: Choose Pet"
+      },
+      {
+        "command": "pixelPet.selectScene",
+        "title": "Pixel Pet: Choose Scene"
       },
       {
         "command": "pixelPet.resetTheme",

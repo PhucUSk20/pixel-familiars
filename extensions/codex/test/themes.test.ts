@@ -5,6 +5,7 @@ import { tmpdir } from 'node:os'
 import { join, resolve } from 'node:path'
 import { ThemeTools } from '../theme-tools'
 import { storedTheme, atomicJson, bridgeRoot } from '../bridge'
+import { bundledTheme } from '../scene-theme'
 
 test('theme tools preview without applying, apply last preview, survive reconnect and reset', async () => {
   const home = await mkdtemp(join(tmpdir(), 'pixel-pet-theme-'))
@@ -29,7 +30,7 @@ test('theme tools preview without applying, apply last preview, survive reconnec
     await tools.call('set_theme', { theme: null })
     assert.equal((await storedTheme(home))?.theme, null)
     const slime = JSON.parse(await readFile(join(assets, 'assets', 'slime.json'), 'utf8'))
-    assert.deepEqual(await connected.current(), slime)
+    assert.deepEqual(await connected.current(), bundledTheme(slime))
     assert.ok((await connected.format()).includes('sprite'))
   } finally { await rm(home, { recursive: true, force: true }) }
 })

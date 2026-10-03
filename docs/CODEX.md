@@ -1,4 +1,4 @@
-# Pixel Pet for Codex 0.2
+# Pixel Pet for Codex 0.2.2
 
 This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
@@ -42,6 +42,12 @@ CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` select
 | Custom themes | Real MCP tools, preview/apply/reset | File import also works |
 
 The shared engine supplies original motions, faces, props, scenes, minis and pixel HUD gradients/warning colors. HP estimates context remaining from last-request tokens and the model window, never cumulative session usage. MP/ST show only reported 300/10080-minute windows. Missing readings stay `—`.
+
+Bundled Slime and Duck now include a Codex meadow: ground, sun, rocks to leap, flowers and drifting clouds. Alien keeps its original full scene and custom props/HUD. The upstream default slime asset itself has no scene; the scene commit adds optional theme support, not a background to every pet. **Pet** chooses a bundled theme (replacing the current theme), **Scene** chooses Meadow or No scene while preserving the pet/props/HUD, and **Reset** restores the default slime and meadow. Custom/imported/MCP themes render exactly their own scene; none is added automatically. Preset scenes are part of the active theme returned by MCP and displayed in previews.
+
+Read, search, web, edit and terminal props are rendered by the same `compose` function as Claude. Tool namespaces such as `web__run` now select the correct prop. For an unambiguous recorded `functions.exec` wrapper, fallback uses static tool-name/command hints to select its motion; it never executes source code. Wrappers mixing different kinds of tools remain generic terminal activity. Fallback cannot reconstruct the timing of each nested call. A completed tool's pose is held for up to 1.2 seconds so fast calls remain visible; **active tools/agents** still counts actual observed activity, not a cumulative total.
+
+On a real PreCompact event, the pet rests in a steaming bath until PostCompact arrives. HP continues to use reported context usage and is not artificially refilled. This requires compaction events, normally provided by trusted Direct hooks; fallback does not invent a bath from a completed compaction log. Log-spawned minis now have stable birth/departure times, but their individual lifecycles remain best effort; native SubagentStart/Stop events provide full coverage.
 
 SubagentStop without an explicit failure flag/status counts as ordinary completion; failure is not inferred from prose. Unsupported error response formats may need adapters. Native events are sanitized into a small local stream, watched with a 25ms debounce and 250ms recovery polling. Advisory hook commands run synchronously with a 3s timeout to preserve order; they do not approve/deny/rewrite tools and add local process startup overhead. Lifecycle state from the matching session/turn is combined with usage from logs. Historical activity expires after 10 minutes without updates.
 
