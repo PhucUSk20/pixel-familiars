@@ -4,10 +4,11 @@ This local fork keeps the upstream pixel engine and adds a VS Code companion, na
 
 ## Use the installed version
 
-1. Reload VS Code and run **Pixel Pet: Open Companion**.
-2. Start a new Codex conversation so MCP tools load, and keep the companion visible. **Log fallback** works without reviewing hooks.
+1. Run **Pixel Pet: Review Codex Hooks** to open the bundled Codex CLI. Enter `/hooks`, review and trust the entries labeled **Pixel Pet observer**. Unrelated hooks are not part of this package.
+2. Exit the review CLI, reload VS Code and run **Pixel Pet: Open Companion**.
+3. Start a new Codex conversation so MCP tools load, and run a tool. Keep the companion visible and check its source label shows **Direct hooks**. The review CLI does not need to stay open.
 
-Optional: run **Pixel Pet: Review Codex Hooks** to open the bundled Codex CLI, enter `/hooks`, and review/trust the entries labeled **Pixel Pet observer** to enable **Direct hooks**. Then reload VS Code and start a new Codex conversation. Unrelated hooks are not part of this package.
+This is the recommended flow for detailed tool/subagent events and compaction animations. If review is skipped or native events are unavailable, the companion uses **Log fallback** with reduced coverage.
 
 Codex skips non-managed hooks until the exact definition is trusted. The installer does not modify trust or bypass review. See [official hook trust guidance](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks).
 
@@ -18,12 +19,12 @@ MCP tools: `get_theme`, `get_theme_format`, `preview_theme`, `set_theme`. Format
 Requires Node 22.18+, VS Code 1.96+ and a local Codex runtime supporting lifecycle hooks:
 
 ```powershell
-npm.cmd run install:codex -- --no-review
+npm.cmd run install:codex
 ```
 
-Run this inside the cloned repo (use `npm run install:codex -- --no-review` on macOS/Linux). This single command installs dependencies, typechecks/builds/packages, installs the VSIX, finds the Codex extension's bundled CLI for setup, and installs hooks/MCP. Node, the VS Code `code` command and the Codex extension must already be installed. `--no-review` skips opening the interactive Codex CLI; the companion uses **Log fallback** without requiring hook trust. After installation, reload VS Code, open the Pixel Pet panel and start a new Codex chat.
+Run this inside the cloned repo (use `npm run install:codex` on macOS/Linux). It installs dependencies, typechecks/builds/packages, installs the VSIX, finds the Codex extension's bundled CLI, and installs hooks/MCP. Node, the VS Code `code` command and the Codex extension must already be installed. The installer opens Codex with `--no-daemon`; enter `/hooks` and review/trust the **Pixel Pet observer** entries to enable **Direct hooks**. The script does not grant trust on your behalf. Exit the review CLI, reload VS Code, open the Pixel Pet panel and start a new Codex chat. Check **Direct hooks** appears after tool activity.
 
-For optional hook review during installation, omit `-- --no-review`. The installer then opens Codex with `--no-daemon`; enter `/hooks` and review/trust the **Pixel Pet observer** entries to enable **Direct hooks**. The script does not grant trust on your behalf.
+Alternative: `npm.cmd run install:codex -- --no-review` skips opening the review interface. Use it only when you want noninteractive installation or plan to review later; activity uses less complete **Log fallback** until trusted native hook events arrive.
 
 The installer copies bundled hook/MCP code and assets into `<CODEX_HOME>/pixel-pet/runtime`, backs up and merges its entries into `<CODEX_HOME>/hooks.json`, and registers the `pixel-pet` stdio MCP server. Other hooks/servers are preserved. No added model calls or API key are required. **Pixel Pet: Set Up Codex Hooks and MCP** remains available for reinstallation from an installed extension.
 
@@ -52,6 +53,14 @@ On a real PreCompact event, the pet rests in a steaming bath until PostCompact a
 SubagentStop without an explicit failure flag/status counts as ordinary completion; failure is not inferred from prose. Unsupported error response formats may need adapters. Native events are sanitized into a small local stream, watched with a 25ms debounce and 250ms recovery polling. Advisory hook commands run synchronously with a 3s timeout to preserve order; they do not approve/deny/rewrite tools and add local process startup overhead. Lifecycle state from the matching session/turn is combined with usage from logs. Historical activity expires after 10 minutes without updates.
 
 The companion cannot identify the currently selected Codex chat through a documented API used here. **Session** pins a session or follows the latest matching local IDE session. The pet stays in a separate panel. This release improves behavioral coverage; it does not claim complete parity with the Claude mod's UI/runtime.
+
+## Panel placement
+
+The installed Codex extension exposes its conversation as its own VS Code webview. No documented integration point was found for embedding another extension's live companion inside that conversation or above its prompt. Pixel Pet therefore owns a separate webview; it does not modify the installed Codex extension.
+
+For a closer layout, open Codex and Pixel Pet, then drag the **Pixel Pet: Codex Companion** view header into the same sidebar/view container as Codex, below the chat. You can also use the view header's **Move View** action or the Command Palette's **View: Move View** command to select a destination. Resize the split so the pet sits below the conversation. It remains a separate view, but both can be visible in one sidebar. See [VS Code custom layout](https://code.visualstudio.com/docs/configure/custom-layout) and [webview isolation](https://code.visualstudio.com/api/extension-guides/webview).
+
+MCP tools for theme changes do not themselves provide a persistent pet overlay inside the Codex IDE chat. An embedded UI would require a supported Codex UI integration point; this fork does not currently have one.
 
 ## Settings and theme workflow
 

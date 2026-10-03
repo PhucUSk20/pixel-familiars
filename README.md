@@ -8,17 +8,23 @@
 
 ## Codex VS Code — this fork
 
-Inside this cloned repo, install with one command (Node 22.18+, VS Code `code` command and the Codex extension required):
+For the most complete activity tracking, install from this cloned repo (Node 22.18+, VS Code `code` command and the Codex extension required):
 
 ```powershell
-npm.cmd run install:codex -- --no-review
+npm.cmd run install:codex
 ```
 
-Version **0.2.2** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools in one command. `--no-review` skips opening the Codex CLI; no hook trust step is required for **Log fallback**. After installation, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.
+Version **0.2.2** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools. It then opens the bundled Codex CLI for hook review:
+
+1. Enter `/hooks`, review and trust the **Pixel Pet observer** entries.
+2. Exit the review CLI, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.
+3. Run a tool in Codex and check that the companion shows **Direct hooks**. This enables more detailed tool/subagent events and compaction animations; the CLI does not need to stay open.
 
 The default Codex slime has a meadow with grass, sun, rocks, flowers and drifting clouds. **Pet** selects Slime, Duck or Alien; **Scene** changes the background while keeping the pet; **Reset** restores the default. Existing custom themes keep their own scene (or no scene). Reading, searching, web, editing and terminal props use the same pixel engine as Claude. Short tool actions remain visible briefly even when the active-tool counter has already returned to zero.
 
-Optional: to enable **Direct hooks**, run **Pixel Pet: Review Codex Hooks** in VS Code, enter `/hooks`, and review/trust the **Pixel Pet observer** entries. Then reload VS Code and start a new Codex conversation. This is optional and is not part of the one-command installation.
+Already installed? Run **Pixel Pet: Review Codex Hooks** in VS Code and follow the same review/reload steps. The installer does not grant hook trust automatically. `npm.cmd run install:codex -- --no-review` remains an alternative for installing without interactive review, with less complete **Log fallback** tracking until hooks are trusted.
+
+Pixel Pet is a separate VS Code view. You can move it into the same sidebar area as Codex, but it cannot currently be embedded inside Codex's conversation or prompt using a documented integration API. See [panel placement and limitations](docs/CODEX.md#panel-placement).
 
 Ask Codex to customize the pet through `get_theme`, `get_theme_format`, `preview_theme`, and `set_theme`. The **Preview** button opens the generated page. For installation/build commands and remaining differences, read [the Codex guide](docs/CODEX.md).
 
