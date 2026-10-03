@@ -14,7 +14,7 @@ For the most complete activity tracking, install from this cloned repo (Node 22.
 npm.cmd run install:codex
 ```
 
-Version **0.2.2** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools. It then opens the bundled Codex CLI for hook review:
+Version **0.2.3** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools. It then opens the bundled Codex CLI for hook review:
 
 1. Enter `/hooks`, review and trust the **Pixel Pet observer** entries.
 2. Exit the review CLI, reload VS Code, run **Pixel Pet: Open Companion**, and start a new Codex conversation.

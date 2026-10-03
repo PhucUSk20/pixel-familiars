@@ -3,7 +3,7 @@
   "displayName": "Pixel Pet for Codex",
   "description": "An animated pixel companion for local Codex sessions in VS Code.",
   "publisher": "pixel-pet-local",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -149,9 +149,10 @@
     "install:codex": "node tools/codex/install-all.mjs",
     "build": "node tools/codex/build.mjs",
     "typecheck": "tsc -p tsconfig.codex.json",
-    "test": "tsx --test extensions/codex/test/*.test.ts",
+    "test": "tsx --test extensions/codex/test/*.test.ts tools/codex/test/*.test.mjs",
     "vscode:prepublish": "npm run typecheck && npm run build",
-    "package": "vsce package --no-dependencies -o dist/pixel-pet-codex.vsix",
+    "prepackage": "npm run typecheck && npm run build",
+    "package": "node tools/codex/package.mjs",
     "test:ui": "node tools/codex/smoke.mjs",
     "diagnose": "tsx tools/codex/diagnose.ts",
     "setup": "tsx tools/codex/install.ts"
@@ -159,7 +160,7 @@
   "devDependencies": {
     "@types/node": "^22.0.0",
     "@types/vscode": "~1.96.0",
-    "@vscode/vsce": "^4.0.0",
+    "fflate": "^0.8.3",
     "esbuild": "^0.25.0",
     "playwright": "^1.63.0",
     "tsx": "^4.0.0",

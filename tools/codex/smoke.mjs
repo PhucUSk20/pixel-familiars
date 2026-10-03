@@ -23,6 +23,7 @@ const subscriptions = []
 const commands = new Map()
 const terminalCommands = []
 const state = new Map()
+const workspaceState = new Map()
 const options = { codexHome: directory }
 let pickLabel
 let provider, receive, html = '', page
@@ -45,7 +46,7 @@ const vscode = {
   },
   ConfigurationTarget: { Workspace: 2 },
 }
-const context = { extensionUri: { fsPath: root }, subscriptions, globalState: { get: key => state.get(key), update: async (key, value) => { state.set(key, value) } } }
+const context = { extensionUri: { fsPath: root }, subscriptions, globalState: { get: key => state.get(key), update: async (key, value) => { state.set(key, value) } }, workspaceState: { get: key => workspaceState.get(key), update: async (key, value) => { workspaceState.set(key, value) } } }
 const host = { exports: {} }
 const require = createRequire(import.meta.url)
 runInNewContext(await readFile('dist/extension.cjs', 'utf8'), { module: host, exports: host.exports, require: name => name === 'vscode' ? vscode : require(name), process, Buffer, console, setInterval, clearInterval, setTimeout, clearTimeout })
@@ -174,6 +175,26 @@ try {
   const applied = await client.callTool({ name: 'set_theme', arguments: {} })
   assert.equal(applied.isError, undefined)
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('FUEL'))
+  // A second workspace shares the global store but owns its themeFile setting.
+  state.set('appliedRevision', workspaceState.get('appliedRevision'))
+  const secondOptions = { codexHome: directory, themeFile: 'plugins/pixel-pet/assets/slime.json' }
+  const secondState = new Map()
+  const secondSubscriptions = []
+  let secondProvider
+  const secondVscode = { ...vscode,
+    workspace: { ...vscode.workspace, getConfiguration: () => ({ get: (key, fallback) => secondOptions[key] ?? fallback, update: async (key, value) => { secondOptions[key] = value } }) },
+    window: { ...vscode.window, registerWebviewViewProvider: (_id, value) => { secondProvider = value; return disposable() } },
+    commands: { ...vscode.commands, registerCommand: () => disposable() },
+  }
+  const secondHost = { exports: {} }
+  runInNewContext(await readFile('dist/extension.cjs', 'utf8'), { module: secondHost, exports: secondHost.exports, require: name => name === 'vscode' ? secondVscode : require(name), process, Buffer, console, setInterval, clearInterval, setTimeout, clearTimeout })
+  try {
+    secondHost.exports.activate({ ...context, subscriptions: secondSubscriptions, workspaceState: { get: key => secondState.get(key), update: async (key, value) => { secondState.set(key, value) } } })
+    await secondProvider.syncSavedTheme()
+    await page.waitForTimeout(100)
+    assert.equal(secondOptions.themeFile, '', 'a new workspace must clear its override even after another window applied the same revision')
+    assert.equal(secondState.get('appliedRevision'), workspaceState.get('appliedRevision'))
+  } finally { for (const subscription of secondSubscriptions) subscription.dispose() }
   const readResource = await client.readResource({ uri: 'pixel-pet://theme-format' })
   assert.ok(readResource.contents[0].text.includes('sprite'))
   const reset = await client.callTool({ name: 'set_theme', arguments: { theme: null } })

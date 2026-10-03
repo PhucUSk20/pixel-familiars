@@ -1,12 +1,12 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
-import { mkdtemp, readFile, rm } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, mkdir, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
 import { sanitizeHook, writeHook, eventPath, atomicJson, bridgeRoot } from '../bridge'
 import { SessionTail } from '../sessions'
 import { SessionReducer, toolFailed } from '../protocol'
-import { mergeHooks } from '../install'
+import { mergeHooks, installBridge } from '../install'
 
 const now = Date.now()
 const event = (event: string, extra: Record<string, unknown> = {}, time = now) => ({ type: 'pixel_pet_hook', timestamp: new Date(time).toISOString(), payload: { event, ...extra } })
@@ -92,4 +92,22 @@ test('install merge is idempotent and preserves unrelated hooks and metadata', (
   assert.deepEqual((once.hooks as Record<string, unknown[]>).PreToolUse[0], other)
   assert.throws(() => mergeHooks([], 'node pixel-pet'), /not replaced/)
   assert.throws(() => mergeHooks({ hooks: { PreToolUse: 'malformed' } }, 'node pixel-pet'), /not replaced/)
+})
+
+test('failed MCP registration does not change existing hooks or report a completed installation', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'pixel-pet-install-'))
+  try {
+    const path = join(home, 'hooks.json')
+    const original = '{"hooks":{"Stop":[{"hooks":[{"type":"command","command":"existing"}]}]}}\n'
+    await atomicJson(path, JSON.parse(original))
+    const before = await readFile(path, 'utf8')
+    const packageRoot = join(home, 'package')
+    for (const file of ['dist/hook.cjs', 'dist/mcp.mjs', 'plugins/pixel-pet/assets/slime.json', 'plugins/pixel-pet/assets/duck.json', 'plugins/pixel-pet/assets/alien.json', 'plugins/pixel-pet/skills/pixel-pet/FORMAT.md']) {
+      await mkdir(dirname(join(packageRoot, file)), { recursive: true })
+      await writeFile(join(packageRoot, file), 'fixture')
+    }
+    await assert.rejects(() => installBridge(home, packageRoot, join(home, 'missing-codex'), process.execPath), { code: 'ENOENT' })
+    assert.equal(await readFile(path, 'utf8'), before)
+    await assert.rejects(() => readFile(join(bridgeRoot(home), 'installation.json')), { code: 'ENOENT' })
+  } finally { await rm(home, { recursive: true, force: true }) }
 })

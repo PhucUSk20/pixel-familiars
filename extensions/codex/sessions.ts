@@ -51,7 +51,8 @@ export async function discoverSessions(home: string, roots: string[], includeCli
     for (const entry of await readdir(directory, { withFileTypes: true })) {
       if (!entry.isFile() || !entry.name.endsWith('.jsonl')) continue
       const path = join(directory, entry.name)
-      candidates.push({ path, modified: (await stat(path)).mtimeMs })
+      try { candidates.push({ path, modified: (await stat(path)).mtimeMs }) }
+      catch (error) { if (object(error).code !== 'ENOENT') throw error }
     }
   }
   const sessions: Session[] = []

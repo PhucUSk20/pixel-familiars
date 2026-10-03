@@ -14,6 +14,13 @@ Upstream base: `02eb10a`, branch `codex-vscode`. Local VS Code Codex version: `2
 
 The actual VS Code extension-host UI was not automated. After reloading the window, use **Pixel Pet: Open Companion** to check it beside Codex.
 
+## Codex 0.2.3 PR review fixes — 2026-10-04
+
+- Removed the VSCE packaging dependency and all ten `vsce-sign` packages that triggered Sourcery/Trivy unknown-license findings. Local VSIX packaging uses MIT-licensed `fflate` and an explicit asset list. No license metadata was falsified and no scanner exceptions were added.
+- `npm audit` reports 0 vulnerabilities; the lockfile has no `vsce-sign` or `SEE LICENSE` entries.
+- TypeScript, 24 tests and Chromium smoke pass. Regression tests cover VSIX metadata/contents/XML escaping, exclusion of repository secrets and incomplete archives, session rotation during discovery, failed MCP registration preserving hooks, and a second workspace clearing its own themeFile override after another window applied the same shared theme revision.
+- Workspace theme application revisions are now stored in workspaceState rather than shared globalState. MCP registration completes before merged hooks are written. Removed session candidates are skipped when stat reports ENOENT.
+
 ## Codex 0.2.2 parity update
 
 - TypeScript and 21 adapter/scene/theme tests pass. New tests verify default ground/sky/obstacles/drifting decor, actual obstacle leap/landing, palette preservation and repeated scene selection, steaming compaction bath without overwriting minis, stable fallback mini birth/departure, parallel tool mode restoration, and namespace/static-wrapper classification.

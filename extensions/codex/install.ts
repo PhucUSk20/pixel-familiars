@@ -49,9 +49,9 @@ export async function installBridge(home: string, packageRoot: string, codex = '
     backup = join(root, `hooks-backup-${Date.now()}.json`)
     await copyFile(path, backup)
   }
-  await atomicJson(path, merged)
   // Ensure this helper uses the same home, without changing any existing MCP server.
   await execute(codex, ['mcp', 'add', 'pixel-pet', '--', nodeCommand, join(runtime, 'mcp.mjs'), '--home', home, '--assets', assets], { env: { ...process.env, CODEX_HOME: home }, windowsHide: true, timeout: 30_000 })
+  await atomicJson(path, merged)
   await atomicJson(join(root, 'installation.json'), { version: '0.2.0', installedAt: Date.now() })
   return { hooks: path, runtime, backup }
 }

@@ -69,10 +69,10 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     if (!saved || saved.revision === this.savedRevision) return
     this.savedRevision = saved.revision
     await this.context.globalState.update('theme', saved.theme === null ? undefined : saved.theme)
-    const applied = this.context.globalState.get<string>('appliedRevision')
+    const applied = this.context.workspaceState.get<string>('appliedRevision')
     if (applied !== saved.revision) {
       if (config().get<string>('themeFile', '')) await config().update('themeFile', '', vscode.ConfigurationTarget.Workspace)
-      await this.context.globalState.update('appliedRevision', saved.revision)
+      await this.context.workspaceState.update('appliedRevision', saved.revision)
     }
     await this.reloadTheme()
   }

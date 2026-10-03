@@ -1,4 +1,4 @@
-# Pixel Pet for Codex 0.2.2
+# Pixel Pet for Codex 0.2.3
 
 This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
@@ -27,6 +27,8 @@ Run this inside the cloned repo (use `npm run install:codex` on macOS/Linux). It
 Alternative: `npm.cmd run install:codex -- --no-review` skips opening the review interface. Use it only when you want noninteractive installation or plan to review later; activity uses less complete **Log fallback** until trusted native hook events arrive.
 
 The installer copies bundled hook/MCP code and assets into `<CODEX_HOME>/pixel-pet/runtime`, backs up and merges its entries into `<CODEX_HOME>/hooks.json`, and registers the `pixel-pet` stdio MCP server. Other hooks/servers are preserved. No added model calls or API key are required. **Pixel Pet: Set Up Codex Hooks and MCP** remains available for reinstallation from an installed extension.
+
+Local VSIX packaging uses `tools/codex/package.mjs` with the MIT-licensed `fflate` ZIP library and an explicit list of runtime assets. The package command typechecks and builds first; it does not include dependencies, sign extensions or publish to the Marketplace. The Microsoft `vsce-sign` dependency is not required or installed. MCP registration must succeed before the installer commits the merged hook configuration.
 
 CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` selects Codex home. The extension setup locates bundled Codex automatically. This is a local fork on `codex-vscode`, with remote `upstream`; no GitHub account fork or Marketplace publication is implied.
 

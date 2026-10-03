@@ -1,4 +1,6 @@
-import { test } from 'node:test'
+import { test, mock } from 'node:test'
+import fs from 'node:fs/promises'
+import { syncBuiltinESMExports } from 'node:module'
 import assert from 'node:assert/strict'
 import { mkdtemp, mkdir, writeFile, appendFile, rm } from 'node:fs/promises'
 import { join } from 'node:path'
@@ -23,6 +25,23 @@ test('discovery excludes other workspaces and CLI unless requested', async () =>
     assert.deepEqual((await discoverSessions(home, ['D:/repo'])).map(s => s.id), ['ide'])
     assert.equal((await discoverSessions(home, ['D:/repo'], true)).length, 2)
   } finally { await rm(home, { recursive: true, force: true }) }
+})
+
+test('a session removed between directory listing and stat does not prevent other sessions from being discovered', async () => {
+  const home = await mkdtemp(join(tmpdir(), 'pixel-pet-rotation-'))
+  const originalStat = fs.stat
+  try {
+    const directory = join(home, 'sessions', '2026', '10', '04')
+    await mkdir(directory, { recursive: true })
+    await writeFile(join(directory, 'removed.jsonl'), record('session_meta', { id: 'removed', cwd: 'D:/repo', source: 'vscode' }))
+    await writeFile(join(directory, 'valid.jsonl'), record('session_meta', { id: 'valid', cwd: 'D:/repo', source: 'vscode' }))
+    mock.method(fs, 'stat', async (path: string) => {
+      if (path.endsWith('removed.jsonl')) throw Object.assign(new Error('session removed'), { code: 'ENOENT' })
+      return originalStat(path)
+    })
+    syncBuiltinESMExports()
+    assert.deepEqual((await discoverSessions(home, ['D:/repo'])).map(session => session.id), ['valid'])
+  } finally { mock.restoreAll(); syncBuiltinESMExports(); await rm(home, { recursive: true, force: true }) }
 })
 
 test('tail handles split UTF-8, partial writes, corrupt lines, truncation and output deduplication', async () => {
