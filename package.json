@@ -3,7 +3,7 @@
   "displayName": "Pixel Pet for Codex",
   "description": "An animated pixel companion for local Codex sessions in VS Code.",
   "publisher": "pixel-pet-local",
-  "version": "0.2.3",
+  "version": "0.9.1",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -121,7 +121,7 @@
           "type": "number",
           "minimum": 0,
           "default": 60,
-          "description": "Idle seconds before sleeping. Zero disables sleep."
+          "description": "Idle seconds before sleeping while Mini rests. An awake Mini keeps the AI pet company with local interactions. Zero disables sleep."
         },
         "pixelPet.showHud": {
           "type": "boolean",
@@ -132,10 +132,18 @@
           "default": "",
           "description": "Optional theme JSON path, relative to the first workspace folder or absolute. Reloaded when saved."
         },
+        "pixelPet.projectChecks": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          },
+          "default": [],
+          "description": "Optional required VS Code check task names. Empty follows observed Codex checks and VS Code build/test tasks automatically. Mini never launches commands."
+        },
         "pixelPet.showMinis": {
           "type": "boolean",
           "default": true,
-          "description": "Show minis for subagent lifecycle events."
+          "description": "Show minis for observed tool calls and subagent lifecycle events."
         },
         "pixelPet.showStatusLine": {
           "type": "boolean",
@@ -154,6 +162,7 @@
     "prepackage": "npm run typecheck && npm run build",
     "package": "node tools/codex/package.mjs",
     "test:ui": "node tools/codex/smoke.mjs",
+    "record:codex-pets": "node tools/codex/record-pets.mjs",
     "diagnose": "tsx tools/codex/diagnose.ts",
     "setup": "tsx tools/codex/install.ts"
   },

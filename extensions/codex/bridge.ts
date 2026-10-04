@@ -2,7 +2,8 @@ import { createHash, randomUUID } from 'node:crypto'
 import { join, resolve } from 'node:path'
 import { mkdir, readFile, writeFile, rename, appendFile, stat } from 'node:fs/promises'
 import { readTheme } from '../../plugins/pixel-pet/hooks/theme'
-import { object, classifyTool, toolFailed } from './protocol'
+import { object, classifyTool, toolFailed, orchestrationTool } from './protocol'
+import { executionMetadata, polledProcess } from './execution'
 
 export const bridgeRoot = (home: string) => join(home, 'pixel-pet')
 export const eventPath = (home: string, id: string) => join(bridgeRoot(home), 'events', createHash('sha256').update(id).digest('hex') + '.jsonl')
@@ -53,9 +54,18 @@ export function sanitizeHook(input: unknown, targets = false): Record<string, un
   if (typeof data.tool_use_id === 'string') event.callId = data.tool_use_id.slice(0, 256)
   if (data.hook_event_name === 'PreToolUse' || data.hook_event_name === 'PostToolUse') {
     event.mode = tool.mode
+    if (orchestrationTool(String(data.tool_name ?? '')) || polledProcess(String(data.tool_name ?? ''), data.tool_input)) event.wrapper = true
     if (targets) event.target = tool.target
   }
-  if (data.hook_event_name === 'PostToolUse') event.failed = toolFailed(data.tool_response)
+  if (data.hook_event_name === 'PostToolUse') {
+    event.failed = toolFailed(data.tool_response)
+    if (data.tool_name === 'Bash' || orchestrationTool(String(data.tool_name ?? '')) || String(data.tool_name ?? '').endsWith('exec_command') || String(data.tool_name ?? '').endsWith('write_stdin')) {
+      const execution = executionMetadata(data.tool_response)
+      if (execution.running.length) event.runningProcesses = execution.running.slice(0, 32)
+      const poll = polledProcess(String(data.tool_name ?? ''), data.tool_input)
+      if (poll && execution.exits.length === 1 && !execution.running.length) event.processEnded = { id: poll, failed: execution.exits[0] !== 0 }
+    }
+  }
   if (typeof data.agent_id === 'string') event.agentId = data.agent_id.slice(0, 256)
   if (data.hook_event_name === 'SubagentStop') event.failed = data.is_error === true || data.status === 'failed' || data.agent_status === 'failed'
   return { id: data.session_id, cwd: data.cwd.slice(0, 4096), payload: event }

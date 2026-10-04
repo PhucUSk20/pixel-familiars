@@ -7,7 +7,18 @@ import { object } from './protocol'
 
 const execute = promisify(execFile)
 const MARKER = 'Pixel Pet observer'
-export function mergeHooks(existing: unknown, command: string): Record<string, unknown> {
+/** Windows hooks may run in cmd or PowerShell; a quoted executable alone fails in PowerShell. */
+export function hookCommands(nodeCommand: string, runtime: string, home: string): { command: string; commandWindows: string } {
+  const quote = (value: string) => { if (/["\r\n`$]/.test(value)) throw new Error('Unsupported character in runtime path.'); return `"${value}"` }
+  const command = `${quote(nodeCommand)} ${quote(join(runtime, 'hook.cjs'))} --home ${quote(home)}`
+  const literal = (value: string) => `'${value.replaceAll("'", "''")}'`
+  // Keep the outer command free of quotes for cmd /C. Decode paths as PowerShell
+  // literals, explicitly invoke Node, and forward JSON stdin using UTF-8.
+  const script = `$ProgressPreference = 'SilentlyContinue'; $OutputEncoding = [System.Text.UTF8Encoding]::new($false); [Console]::InputEncoding = $OutputEncoding; [Console]::OutputEncoding = $OutputEncoding; [Console]::In.ReadToEnd() | & ${literal(nodeCommand)} ${literal(join(runtime, 'hook.cjs'))} --home ${literal(home)}; exit $LASTEXITCODE`
+  return { command, commandWindows: `powershell.exe -NoLogo -NoProfile -NonInteractive -EncodedCommand ${Buffer.from(script, 'utf16le').toString('base64')}` }
+}
+
+export function mergeHooks(existing: unknown, command: string, commandWindows = command): Record<string, unknown> {
   if (existing !== undefined && (existing === null || typeof existing !== 'object' || Array.isArray(existing))) throw new Error('Existing hooks.json is not a JSON object; it was not replaced.')
   const document = object(existing)
   if (document.hooks !== undefined && (document.hooks === null || typeof document.hooks !== 'object' || Array.isArray(document.hooks))) throw new Error('Existing hooks field is malformed; it was not replaced.')
@@ -21,7 +32,7 @@ export function mergeHooks(existing: unknown, command: string): Record<string, u
       const hooks = item.hooks.filter(hook => object(hook).statusMessage !== MARKER)
       return hooks.length ? [{ ...item, hooks }] : []
     })
-    groups[event] = [...kept, { hooks: [{ type: 'command', command, commandWindows: command, timeout: 3, statusMessage: MARKER }] }]
+    groups[event] = [...kept, { hooks: [{ type: 'command', command, commandWindows, timeout: 10, statusMessage: MARKER }] }]
   }
   return { ...document, hooks: groups }
 }
@@ -30,6 +41,7 @@ export function mergeHooks(existing: unknown, command: string): Record<string, u
 export async function installBridge(home: string, packageRoot: string, codex = 'codex', nodeCommand = 'node'): Promise<{ hooks: string; runtime: string; backup?: string }> {
   const root = bridgeRoot(home)
   const runtime = join(root, 'runtime')
+  const commands = hookCommands(nodeCommand, runtime, home)
   const assets = join(runtime, 'plugin')
   await mkdir(join(assets, 'assets'), { recursive: true })
   await mkdir(join(assets, 'skills', 'pixel-pet'), { recursive: true })
@@ -40,10 +52,7 @@ export async function installBridge(home: string, packageRoot: string, codex = '
   await copyFile(join(packageRoot, 'plugins', 'pixel-pet', 'skills', 'pixel-pet', 'FORMAT.md'), join(assets, 'skills', 'pixel-pet', 'FORMAT.md'))
   const path = join(home, 'hooks.json')
   const existing = await readJson(path)
-  // Every interpolated path is quoted, and quote/newline characters are rejected.
-  const quote = (value: string) => { if (/["\r\n`$]/.test(value)) throw new Error('Unsupported character in runtime path.'); return `"${value}"` }
-  const command = `${quote(nodeCommand)} ${quote(join(runtime, 'hook.cjs'))} --home ${quote(home)}`
-  const merged = mergeHooks(existing, command)
+  const merged = mergeHooks(existing, commands.command, commands.commandWindows)
   let backup: string | undefined
   if (existing !== undefined && JSON.stringify(merged) !== JSON.stringify(existing)) {
     backup = join(root, `hooks-backup-${Date.now()}.json`)

@@ -1,7 +1,7 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
-import { bundledTheme, meadowTheme } from '../scene-theme'
+import { bundledTheme, meadowTheme, upgradeMeadow } from '../scene-theme'
 import { animate, readTheme } from '../../../plugins/pixel-pet/hooks/theme'
 import { drawBand, layScene, obstacleSpans } from '../../../plugins/pixel-pet/hooks/scene'
 import { compose, HEIGHT, BODY_W } from '../../../plugins/pixel-pet/hooks/pixels'
@@ -26,6 +26,9 @@ test('bundled slime draws ground, sky, rocks and drifting decor without changing
   assert.ok(first.px.slice(0, first.w * 4).some(color => color >= 0), 'sky must be visible')
   assert.ok(layout.obstacles.length > 0)
   assert.ok(layout.decor.some(item => item.drift !== undefined))
+  assert.ok(body.scene.sky!.length >= 10, 'meadow sun must have a round shaded body and rays, not a three-row dot')
+  assert.ok(new Set(body.scene.sky!.join('').split('').filter(ch => ch !== '.')).size >= 3, 'sun must retain highlights and shading')
+  assert.equal(body.scene.decor.length, 4, 'meadow contains flowers, clouds, trees and grass tufts')
   const later = drawBand(body, body.scene, layout, picture, 0, 10000)
   assert.notDeepEqual(later.px, first.px, 'raised decor must drift')
   const obstacle = obstacleSpans(layout)[0]
@@ -56,4 +59,16 @@ test('compaction bath retains mini pixels, animates steam and does not mutate th
   assert.equal(picture.px[19 * picture.w + 10], -1)
   assert.notDeepEqual(compactionBath(picture, 1, 500).px, bath.px)
   assert.equal(bath.px.length, picture.px.length)
+})
+
+test('only the exact old meadow upgrades; custom drawings and colors remain authoritative', async () => {
+  const slime = JSON.parse(await readFile('plugins/pixel-pet/assets/slime.json', 'utf8'))
+  const palette = { ...slime.palette, g: '#508b46', e: '#315b35', r: '#78838c', s: '#b6c1c9', y: '#ffe28a', w: '#e3f4ff', f: '#ef98ba' }
+  const old = { ...slime, palette, scene: { ground: ['gggegggggegg', 'eeeeeeeeeeee'], sky: ['...yyy...', '..yyyyy..', '...yyy...'], obstacles: [['.ss.', 'srrs', 'rrrr']], decor: [['.f.', 'fgf', '.g.'], ['..www...', '.wwwww..', ...new Array<string>(10).fill('........')]], every: 40 } }
+  assert.deepEqual(upgradeMeadow(old), meadowTheme(old))
+  const modified = { ...old, scene: { ...old.scene, sky: ['..y..', '.yyy.', '..y..'] } }
+  assert.equal(upgradeMeadow(modified), modified)
+  const recolored = { ...old, palette: { ...palette, y: '#abcdef' } }
+  assert.equal(upgradeMeadow(recolored), recolored)
+  assert.equal(upgradeMeadow(slime), slime)
 })

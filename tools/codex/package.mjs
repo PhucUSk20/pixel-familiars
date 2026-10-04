@@ -9,6 +9,7 @@ export const files = [
   ['package.json', 'package.json'], ['README.md', 'readme.md'], ['LICENSE', 'LICENSE.txt'],
   ...['extension.cjs', 'webview.js', 'hook.cjs', 'mcp.mjs'].map(name => [`dist/${name}`, `dist/${name}`]),
   ['media/pet.svg', 'media/pet.svg'], ['docs/CODEX.md', 'docs/CODEX.md'],
+  ...['slime', 'pets', 'demo', 'codex-pet-life', 'codex-pet-actions'].map(name => [`docs/images/${name}.gif`, `docs/images/${name}.gif`]),
   ...['slime', 'duck', 'alien'].map(name => [`plugins/pixel-pet/assets/${name}.json`, `plugins/pixel-pet/assets/${name}.json`]),
   ['plugins/pixel-pet/skills/pixel-pet/FORMAT.md', 'plugins/pixel-pet/skills/pixel-pet/FORMAT.md'],
 ]
@@ -47,7 +48,7 @@ export async function packageExtension(directory) {
     <Asset Type="Microsoft.VisualStudio.Services.Content.License" Path="extension/LICENSE.txt" Addressable="true"/>
   </Assets>
 </PackageManifest>`)
-  const types = { cjs: 'application/octet-stream', js: 'application/javascript', mjs: 'application/javascript', json: 'application/json', md: 'text/markdown', svg: 'image/svg+xml', txt: 'text/plain', vsixmanifest: 'text/xml' }
+  const types = { cjs: 'application/octet-stream', js: 'application/javascript', mjs: 'application/javascript', json: 'application/json', md: 'text/markdown', svg: 'image/svg+xml', gif: 'image/gif', txt: 'text/plain', vsixmanifest: 'text/xml' }
   entries['[Content_Types].xml'] = strToU8(`<?xml version="1.0" encoding="utf-8"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types">${Object.entries(types).map(([extension, type]) => `<Default Extension=".${extension}" ContentType="${type}"/>`).join('')}</Types>`)
   const dist = await realpath(join(root, 'dist'))
   const distRelative = relative(root, dist)

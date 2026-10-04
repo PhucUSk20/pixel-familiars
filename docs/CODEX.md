@@ -1,4 +1,4 @@
-# Pixel Pet for Codex 0.2.3
+# Pixel Pet for Codex 0.9.1
 
 This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
@@ -11,6 +11,12 @@ This local fork keeps the upstream pixel engine and adds a VS Code companion, na
 This is the recommended flow for detailed tool/subagent events and compaction animations. If review is skipped or native events are unavailable, the companion uses **Log fallback** with reduced coverage.
 
 Codex skips non-managed hooks until the exact definition is trusted. The installer does not modify trust or bypass review. See [official hook trust guidance](https://learn.chatgpt.com/docs/hooks#review-and-trust-hooks).
+
+**Upgrading Windows installations from 0.9.0 or earlier:** run the installer again before review. The old hook command quoted the Node executable without PowerShell's invocation operator, so a trusted hook could fail before the observer ran. Version 0.9.1 provides a Windows launcher that works from PowerShell and cmd, invokes Node explicitly and forwards UTF-8 JSON. The command definition changes, so review the new **Pixel Pet observer** entries again. Reload alone cannot repair the old command. **Direct hooks** appears only after a real event for the selected conversation arrives; installation, trust and subprocess tests do not prove IDE delivery.
+
+Worker summoning in 0.9.1 opens an elliptical sigil with orbiting runes in the sky. Its light column extends downward, reaches a smaller ground footprint, and materializes the worker there before it walks to its work spot. Each concurrent task keeps its own portal and identity. The 1.6-second effect observes existing lifecycle events and never launches commands, agents or model requests.
+
+The README includes an [11-second summoning demo](images/codex-pet-summoning.gif), recorded with the production worker renderer and simulated Read/Edit/Run events. It shows staggered starts, three simultaneous workers and separate departures. Generate only this demo with `npm.cmd run record:codex-pets -- --only summon`; the default recording command generates all three README GIFs.
 
 MCP tools: `get_theme`, `get_theme_format`, `preview_theme`, `set_theme`. Format resource: `pixel-pet://theme-format`. Example request: “Make my pet a purple slime. Preview every motion first, then apply when I ask.” **Preview** opens the latest generated page. `set_theme` applies/persists the full object or the last preview in this MCP connection. `theme: null` restores the slime.
 
@@ -37,7 +43,7 @@ CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` select
 | Behavior | Native hook adapter | Log fallback |
 | --- | --- | --- |
 | Turn start/end/interrupt | UserPromptSubmit, Stop, Interrupt | Recorded turn events |
-| Tools including nested code-mode calls | PreToolUse/PostToolUse; balances parallel IDs | Visible top-level calls |
+| Tools including nested code-mode calls | PreToolUse/PostToolUse; independent worker per parallel ID | Recorded calls and structured item events; completed-only children are labeled finished |
 | Errors | MCP error flags and shell exit metadata | Recorded output if available |
 | Subagents | SubagentStart/SubagentStop; stable birth, 1.5s departure | Best-effort spawn results |
 | Approval/compaction | PermissionRequest, PreCompact/PostCompact | Incomplete coverage |
@@ -46,15 +52,61 @@ CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` select
 
 The shared engine supplies original motions, faces, props, scenes, minis and pixel HUD gradients/warning colors. HP estimates context remaining from last-request tokens and the model window, never cumulative session usage. MP/ST show only reported 300/10080-minute windows. Missing readings stay `—`.
 
-Bundled Slime and Duck now include a Codex meadow: ground, sun, rocks to leap, flowers and drifting clouds. Alien keeps its original full scene and custom props/HUD. The upstream default slime asset itself has no scene; the scene commit adds optional theme support, not a background to every pet. **Pet** chooses a bundled theme (replacing the current theme), **Scene** chooses Meadow or No scene while preserving the pet/props/HUD, and **Reset** restores the default slime and meadow. Custom/imported/MCP themes render exactly their own scene; none is added automatically. Preset scenes are part of the active theme returned by MCP and displayed in previews.
+Bundled Slime and Duck now include a Codex meadow: ground, a round shaded sun with rays, rocks to leap, flowers, trees, grass tufts and drifting clouds. Alien keeps its original full scene and custom props/HUD. The upstream default slime asset itself has no scene; the scene commit adds optional theme support, not a background to every pet. **Pet** chooses a bundled theme (replacing the current theme), **Scene** chooses Meadow or No scene while preserving the pet/props/HUD, and **Reset** restores the default slime and meadow. Custom/imported/MCP themes render exactly their own scene; none is added automatically. Preset scenes are part of the active theme returned by MCP and displayed in previews.
 
-Read, search, web, edit and terminal props are rendered by the same `compose` function as Claude. Tool namespaces such as `web__run` now select the correct prop. For an unambiguous recorded `functions.exec` wrapper, fallback uses static tool-name/command hints to select its motion; it never executes source code. Wrappers mixing different kinds of tools remain generic terminal activity. Fallback cannot reconstruct the timing of each nested call. A completed tool's pose is held for up to 1.2 seconds so fast calls remain visible; **active tools/agents** still counts actual observed activity, not a cumulative total.
+Read, search, web, edit and terminal props are rendered by the same `compose` function as Claude. Each observed tool has an independent worker mini using half-sized shared poses/props in the main scene. Running, finished, failed and stopped badges explain the state. Completion triggers a short cheer, failure an error pose, interruption a neutral departure; workers leave after 2.2 seconds. Up to six fit, depending on panel width and the subagent trail, with a count for overflow. `showMinis` controls both worker and subagent minis; the persistent project Mini remains available.
+
+Workers emerge from a purple magic circle beside the AI pet, with an orbiting light and rising sparkles, then walk to nearby free work spots. Their positions follow stable task IDs, so parallel tasks can remain visible together. New workers do not push the AI pet across the canvas. Completion ends with a short departure through the circle.
+
+Structured execution responses with a numeric background `session_id` create process workers even when the enclosing call has returned. They stay until a matching CommandExecution `process_id` exit or direct polling result is observed. Ordinary turn completion keeps them; interruption cancels the display. Hook and log observations of the same handle share one worker. Output prose is never searched for process IDs. When a quiet session has no activity for ten minutes, known unfinished processes remain visible as **awaiting result**, with a gray hourglass and no active count, rather than claiming they are still running.
+
+Tool namespaces such as `web__run` select the corresponding prop. For an unambiguous recorded `functions.exec` wrapper, fallback uses static tool-name/command hints to select its motion; it never executes source code or treats nested source mentions as proof of separate running tools. Structured `item_started`/`item_completed` events additionally identify FileChange, CommandExecution, WebSearch and other supported tool items. When only completion is logged, the child mini is labeled finished and does not increase the active counter. This recovers edits inside mixed wrappers without inventing their start times. Observed children replace their orchestration wrapper in the worker display, and matching IDs deduplicate hook/log events. Partial hooks no longer hide tools available only in fallback.
+
+The main pet keeps the latest tool pose briefly after completion, then returns to thinking when the AI continues with no observed tools. A question mark during that interval is expected: the IDE's Thinking section groups reasoning and tools, but it is not itself a tool lifecycle event. Only reported events drive workers; reasoning text is never analyzed. **Active tools/agents** counts observed activity, not cumulative operations, logical plan steps, or every background OS process. The observer never launches extra AI agents or model requests.
 
 On a real PreCompact event, the pet rests in a steaming bath until PostCompact arrives. HP continues to use reported context usage and is not artificially refilled. This requires compaction events, normally provided by trusted Direct hooks; fallback does not invent a bath from a completed compaction log. Log-spawned minis now have stable birth/departure times, but their individual lifecycles remain best effort; native SubagentStart/Stop events provide full coverage.
 
-SubagentStop without an explicit failure flag/status counts as ordinary completion; failure is not inferred from prose. Unsupported error response formats may need adapters. Native events are sanitized into a small local stream, watched with a 25ms debounce and 250ms recovery polling. Advisory hook commands run synchronously with a 3s timeout to preserve order; they do not approve/deny/rewrite tools and add local process startup overhead. Lifecycle state from the matching session/turn is combined with usage from logs. Historical activity expires after 10 minutes without updates.
+SubagentStop without an explicit failure flag/status counts as ordinary completion; failure is not inferred from prose. Unsupported error response formats may need adapters. Native events are sanitized into a small local stream, watched with a 25ms debounce and 250ms recovery polling. Advisory hook commands run synchronously with a 3s timeout to preserve order; they do not approve/deny/rewrite tools and add local process startup overhead. Lifecycle state from the matching session/turn is combined with usage from logs. Historical active counts expire after 10 minutes without updates; known unfinished background processes remain awaiting result.
 
 The companion cannot identify the currently selected Codex chat through a documented API used here. **Session** pins a session or follows the latest matching local IDE session. The pet stays in a separate panel. This release improves behavioral coverage; it does not claim complete parity with the Claude mod's UI/runtime.
+
+Mini automatically watches project results beside the AI pet. It picks up supported build/test/check commands reported by Codex and build/test task results from VS Code, plus editor errors. While a recorded check runs it shows a small busy effect; success makes it celebrate and show a green check, and errors or failed checks produce a red flag. Without evidence it stays neutral. Click to inspect the recorded result; no separate job or Check action is needed. Relevant file edits invalidate old results, and results reset on reload. By default only observed checks enter the checklist; pixelPet.projectChecks can additionally require specific VS Code task names. All observation and animation run locally without model calls, extra commands or tokens. Feed/Play/Rest remain optional local interactions.
+
+### Idle interactions
+
+The AI pet and project Mini explore independently when no real work is observed. Both choose their own destinations, pauses, flower sniffing, butterfly watching, pebble hops and stretches. Ordinary wandering avoids walking through the other pet. Mini no longer follows a fixed position beside the AI pet.
+
+The first invitation appears after 8–16 seconds of idle. Both walk toward a meeting point, and the scene starts only after they arrive. Each scene lasts about 7 seconds, followed by a 6.5-second departure in opposite directions and a random 10–24 second break before the next invitation. The pets continue exploring between encounters. A shuffled playlist covers all 20 scenes before repeating, avoiding an immediate repeat at playlist boundaries. No model call, command, agent or quota change is involved.
+
+| Scene | Movement and props |
+| --- | --- |
+| Feed / picnic | Pass a cookie, chew with alternating squashes, drop crumbs onto a picnic cloth |
+| Play / catch | A ball arcs back and forth; each pet hops when it reaches them |
+| Tag | Both run across the ground, reverse direction and leave little dust trails |
+| Peekaboo | Mini disappears behind the big pet and peeks out as it looks around |
+| Seesaw | A wooden board tilts on a pivot, lifting the two pets in opposite directions |
+| Trampoline | The big pet squashes into a spring; Mini bounces above its head |
+| Disco | Both lean and wiggle in opposite rhythms under floating music notes |
+| Umbrella | The big pet shelters Mini while a tiny cloud drops rain beside them |
+| Bubbles | Mini uses a bubble wand; outlined bubbles drift toward the big pet's nose |
+| Gift | A box lid lifts and Mini pops out, with a heart above the surprise |
+| Tug of war | The rope sways as both pull; Mini wins and the pair tumble sideways |
+| Stargazing | Both settle low to the ground under twinkling stars and a moving shooting star |
+| High five | Mini jumps up to the cheering big pet, with a flash at contact |
+| Paper plane | Mini rides a gliding paper plane while the big pet waves beside its trail |
+| Fishing | The big pet holds a fishing rod; a boot lifts out of a puddle and Mini hops at the catch |
+| Magic portal | Mini vanishes through an outlined portal and reappears beside the big pet's wand |
+| Block tower | Mini balances and leans on a swaying stack of four colorful blocks |
+| Pillow fight | Pillows move between the pets as feathers scatter and both wobble |
+| Leaf boat | Both bob together on a green leaf while blue ripples flow underneath |
+| Photo booth | Both pose beside a camera, then squash in surprise at its bright flash |
+
+**Feed** and **Play** explicitly invite the pets to their respective scenes. **Rest** pauses automatic exploration/play; **Wake** resumes it. While Mini is awake, the big pet explores between games instead of sleeping. `sleepAfter` still controls the big pet's sleep when Mini rests. Dragging or keyboard placement pauses automatic movement for 12 seconds. Real tools, thinking, worker/subagent departures, approval, compaction, error animations and running project checks take priority and cancel an encounter; the AI pet keeps its real activity pose and Mini stays where it was to watch project results. Idle behavior resumes fresh after a break. Hidden webviews do not render frames. Project result flags remain visible and do not change during play. Custom pet sprites and colors are retained.
+
+The README includes two local demos recorded with the same production modules: [independent pet life](images/codex-pet-life.gif) (40 seconds) and [all 20 interactions](images/codex-pet-actions.gif) (7.6 seconds). Recreate both with `npm.cmd run record:codex-pets`. The recorder needs Chrome/Edge (or `PIXEL_PET_BROWSER`) and ffmpeg; it never reads conversation logs or calls an AI model.
+
+Automatic Codex checks use structured CommandExecution lifecycle records, command names and numeric exit status, never output prose. The current adapter recognizes single npm/pnpm/yarn/bun build/test/typecheck/check/lint/package/verify/validate scripts (including colon suffixes), tsc, pytest, node --test, selected npx test/lint tools and cargo/go/dotnet/maven/gradle/make checks. Compound shell scripts, watch/help/dry-run commands, unknown wrappers and arbitrary external terminals are not classified. Results from before the observer started are ignored; missing start metadata or edits during a check cannot verify the current revision. A green mark reflects the observed/required checklist, not every possible test. Native task and Codex command results are scoped to the current workspace; hook trust remains unchanged.
+The upstream renderer is shared, but the meadow artwork is a Codex preset; the upstream default slime has no scene and Alien uses its original planet scene. Version 0.4.0 expands the former three-row sun into an 11-row sun with highlights, shading and rays. The exact old generated meadow is upgraded when rendered; modified/custom scenes and configured theme files are preserved. **Scene > Meadow** selects the new preset explicitly.
 
 ## Panel placement
 

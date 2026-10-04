@@ -6,10 +6,11 @@ import { join, isAbsolute, resolve, relative } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { readTheme } from '../../plugins/pixel-pet/hooks/theme'
 import { discoverSessions, SessionTail, type Session } from './sessions'
-import { emptySnapshot, object, type Preferences } from './protocol'
+import { emptySnapshot, object, combineActivity, type Preferences } from './protocol'
 import { bridgeRoot, eventPath, atomicJson, storedTheme, saveTheme, readJson } from './bridge'
 import { installBridge } from './install'
-import { bundledTheme, meadowTheme } from './scene-theme'
+import { bundledTheme, meadowTheme, upgradeMeadow } from './scene-theme'
+import { ProjectMonitor } from './project'
 
 const config = () => vscode.workspace.getConfiguration('pixelPet')
 const home = () => config().get<string>('codexHome') || process.env.CODEX_HOME || join(homedir(), '.codex')
@@ -41,7 +42,9 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
   private error = ''
   private themeError = ''
   private timer: ReturnType<typeof setInterval>
+  private project: ProjectMonitor
   constructor(private context: vscode.ExtensionContext, private output: vscode.OutputChannel) {
+    this.project = new ProjectMonitor(state => { void this.view?.webview.postMessage({ type: 'project', state }) }, error => this.report(error))
     this.timer = setInterval(() => { void this.poll() }, 250)
     void this.prepareBridge().catch(e => this.report(e))
   }
@@ -84,10 +87,14 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     const nonce = randomBytes(16).toString('hex')
     view.webview.html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'nonce-${nonce}'; style-src 'nonce-${nonce}';"><style nonce="${nonce}">
       body{font-family:var(--vscode-font-family,system-ui,sans-serif);color:var(--vscode-foreground,#ddd);background:var(--vscode-editor-background,#1e1e1e);padding:16px;margin:0}header{display:flex;align-items:center;gap:10px;flex-wrap:wrap}h2{font-size:14px;margin:0;flex:1}button{background:var(--vscode-button-secondaryBackground,#333);color:var(--vscode-button-secondaryForeground,#eee);border:0;padding:6px 10px;cursor:pointer;border-radius:4px}button:focus-visible{outline:2px solid var(--vscode-focusBorder,#5aa9ff)}#stage{width:100%;height:130px;image-rendering:pixelated}#status{font-size:13px;min-height:20px}#connection,#activity{font-size:11px;opacity:.7;margin:8px 0;overflow-wrap:anywhere}#hud{border:2px solid #5aa9ff;padding:4px 10px;max-width:520px}.bar{display:flex;gap:10px;align-items:center;flex-wrap:wrap;margin:7px 0}.bar label{min-width:48px;white-space:pre;font-family:monospace}.bar canvas{image-rendering:pixelated}.bar span{font-size:12px}footer{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
-      </style></head><body><header><h2>Pixel Pet · Codex</h2><button id="session">Session</button></header><div id="connection" role="status">Connecting…</div><canvas id="stage" aria-label="Animated pixel pet"></canvas><div id="status"></div><div id="activity" role="status"></div><div id="hud"></div><footer><button id="pet">Pet</button><button id="scene">Scene</button><button id="theme">Import theme</button><button id="preview">Preview</button><button id="reset">Reset</button><button id="demo">Demo</button></footer><script nonce="${nonce}" src="${script}"></script></body></html>`
+      #task-minis{display:flex;gap:6px;flex-wrap:wrap;margin:6px 0;font-size:11px}.task-badge{border:1px solid #555;border-radius:4px;padding:3px 6px;overflow-wrap:anywhere}.task-badge[data-state=running]{color:#9fd7ff}.task-badge[data-state=finished]{color:#8add97}.task-badge[data-state=failed]{color:#ff8585}#scene-stage{position:relative;overflow:hidden}#stage{display:block}#mini-stage{position:absolute;touch-action:none;cursor:grab;border-radius:4px}#mini-stage:active{cursor:grabbing}#mini-stage:focus-visible{outline:2px solid var(--vscode-focusBorder,#5aa9ff);background:#5aa9ff18}#mini-pet{margin-top:12px;border-top:1px solid var(--vscode-panel-border,#444);padding-top:10px}#mini-pet summary{cursor:pointer;font-size:12px}#mini-bubble{font-size:12px;min-height:32px;margin:8px 0;overflow-wrap:anywhere}#mini-review{max-width:100%;text-align:left;overflow-wrap:anywhere}.mini-actions{display:flex;gap:8px;flex-wrap:wrap}</style></head><body><header><h2>Pixel Pet · Codex</h2><button id="session">Session</button></header><div id="connection" role="status">Connecting…</div><div id="scene-stage"><canvas id="stage" aria-label="AI pixel pet with your Mini companion"></canvas><div id="mini-stage" tabindex="0" role="button" title="Mini project: click or drag" aria-label="Mini project: click to inspect results, drag or use arrow keys to move"></div></div><div id="status"></div><div id="activity" role="status"></div><div id="task-minis" aria-label="Observed tool minis"></div><div id="hud"></div><details id="mini-pet" open><summary>Mini project · Local</summary><button id="mini-review" title="Inspect project problems or checks"><span id="mini-project">Watching project automatically</span></button><div id="mini-bubble" role="status">Mini watches project results automatically. Click to inspect.</div><div class="mini-actions"><button id="mini-feed">Feed</button><button id="mini-play">Play</button><button id="mini-sleep">Rest</button></div></details><footer><button id="pet">Pet</button><button id="scene">Scene</button><button id="theme">Import theme</button><button id="preview">Preview</button><button id="reset">Reset</button><button id="demo">Demo</button></footer><script nonce="${nonce}" src="${script}"></script></body></html>`
     this.context.subscriptions.push(view.webview.onDidReceiveMessage((message: unknown) => {
       const action = object(message).type
-      if (action === 'ready') void this.reloadTheme().then(() => this.poll(true)).catch(e => this.report(e))
+      if (action === 'ready') {
+        void view.webview.postMessage({ type: 'project', state: this.project.state() })
+        void this.reloadTheme().then(() => this.poll(true)).catch(e => this.report(e))
+      }
+      if (action === 'projectInspect') void this.project.inspect().catch(e => this.report(e))
       if (action === 'session') void vscode.commands.executeCommand('pixelPet.selectSession')
       if (action === 'theme') void vscode.commands.executeCommand('pixelPet.importTheme')
       if (action === 'pet') void this.selectPet()
@@ -105,7 +112,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
       const imported = this.context.globalState.get<unknown>('theme')
       const path = configured ? isAbsolute(configured) ? configured : join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', configured) : undefined
       if (path && (await stat(path)).size > 1024 * 1024) throw new Error('Theme exceeds 1 MB.')
-      const data = path ? JSON.parse(await readFile(path, 'utf8')) : imported ?? bundledTheme(JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8')))
+      const data = path ? JSON.parse(await readFile(path, 'utf8')) : upgradeMeadow(imported ?? bundledTheme(JSON.parse(await readFile(vscode.Uri.joinPath(this.context.extensionUri, 'plugins/pixel-pet/assets/slime.json').fsPath, 'utf8'))))
       const result = readTheme(data)
       if (result.errors) throw new Error(result.errors.join(' '))
       this.theme = result.theme
@@ -144,6 +151,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     try {
       if (Date.now() >= this.nextScan || force) { await this.scan(); this.nextScan = Date.now() + 2000 }
       const logged = this.tail ? await this.tail.poll() : emptySnapshot()
+      this.project.observe(logged)
       let snapshot = logged
       let source = 'Log fallback'
       if (this.hookTail) {
@@ -152,12 +160,15 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
           const sameTurn = !logged.turnId || !hooked.turnId || logged.turnId === hooked.turnId
           const explicitTurn = Boolean(logged.turnId && hooked.turnId && logged.turnId === hooked.turnId)
           if (hooked.hookAt && hooked.sessionId === logged.sessionId && sameTurn && (explicitTurn || hooked.hookAt >= (logged.activityAt ?? 0) - 15000)) {
-            snapshot = { ...hooked, usage: logged.usage }; source = 'Direct hooks'
+            snapshot = combineActivity(logged, hooked); source = 'Direct hooks'
           }
         } catch (error) { if (object(error).code !== 'ENOENT') this.report(error) }
       }
       this.error = ''
       if (!preferences().targets) snapshot.target = ''
+      if (!preferences().targets) snapshot.toolStates = snapshot.toolStates?.map(tool => ({ ...tool, target: '' }))
+      // Command directories stay in the host; the UI receives only project outcomes.
+      snapshot.checkStates = undefined
       await this.view?.webview.postMessage({ type: 'activity', snapshot, demo: this.demo, preferences: preferences(), connection: this.themeError || (this.tail ? `${this.pinned ? 'Pinned' : 'Following latest'} local session · ${snapshot.sessionId?.slice(0, 8) ?? ''} · ${source}` : 'No local Codex session in this workspace. Start a Codex turn, or select Demo.') })
     } catch (error) {
       const code = object(error).code
@@ -234,7 +245,8 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     } catch (error) { this.report(error); await vscode.window.showErrorMessage('Could not open the Pixel Pet preview. See the output channel.') }
   }
   toggleDemo(): void { this.demo = !this.demo; void this.poll(true) }
-  settingsChanged(): void {
+  settingsChanged(resetProject = false): void {
+    void this.project.refresh(resetProject)
     this.nextScan = 0
     if (this.observedHome !== home()) { this.tail = undefined; this.hookTail = undefined; this.pinned = undefined; this.savedRevision = ''; void this.prepareBridge().catch(e => this.report(e)) }
     else void atomicJson(join(bridgeRoot(home()), 'preferences.json'), { targets: preferences().targets }).catch(e => this.report(e))
@@ -257,7 +269,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     void vscode.window.showInformationMessage('In the Codex terminal, enter /hooks and review/trust only the Pixel Pet observer entries. Then reload VS Code and start a new Codex session.')
   }
   report(error: unknown): void { this.output.appendLine(error instanceof Error ? error.message : String(error)) }
-  dispose(): void { this.disposed = true; clearInterval(this.timer); clearTimeout(this.wakeTimer); this.bridgeWatcher?.close(); this.eventsWatcher?.close() }
+  dispose(): void { this.disposed = true; this.project.dispose(); clearInterval(this.timer); clearTimeout(this.wakeTimer); this.bridgeWatcher?.close(); this.eventsWatcher?.close() }
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -276,7 +288,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('pixelPet.reviewHooks', () => companion.reviewHooks()),
     vscode.commands.registerCommand('pixelPet.demo', async () => { await vscode.commands.executeCommand('pixelPet.companion.focus'); companion.toggleDemo() }),
     vscode.workspace.onDidChangeConfiguration(e => { if (e.affectsConfiguration('pixelPet')) companion.settingsChanged() }),
-    vscode.workspace.onDidChangeWorkspaceFolders(() => companion.settingsChanged()),
+    vscode.workspace.onDidChangeWorkspaceFolders(() => companion.settingsChanged(true)),
     vscode.workspace.onDidSaveTextDocument(doc => {
       const themeFile = config().get<string>('themeFile', '')
       if (themeFile && doc.uri.fsPath === (isAbsolute(themeFile) ? themeFile : join(vscode.workspace.workspaceFolders?.[0]?.uri.fsPath ?? '', themeFile))) void companion.reloadTheme().catch(e => companion.report(e))

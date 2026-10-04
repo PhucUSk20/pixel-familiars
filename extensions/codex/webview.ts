@@ -7,8 +7,12 @@ import { readSettings } from '../../plugins/pixel-pet/hooks/settings'
 import { minisOnScreen } from '../../plugins/pixel-pet/hooks/minis'
 import { hudRows, frameColor } from '../../plugins/pixel-pet/hooks/hud'
 import type { Anim, Mode } from '../../plugins/pixel-pet/types'
-import { emptySnapshot, object, type Preferences, type Snapshot } from './protocol'
+import { emptySnapshot, object, TOOL_DEPARTURE_MS, type Preferences, type Snapshot } from './protocol'
+import { taskMiniLayout, WorkerSprites, taskLabel } from './task-minis'
 import { compactionBath } from './compaction'
+import { MiniPet } from './mini-pet'
+import { interactionMain } from './interactions'
+import type { ProjectState } from './project-state'
 
 declare function acquireVsCodeApi(): { postMessage(message: unknown): void }
 const vscode = acquireVsCodeApi()
@@ -27,12 +31,17 @@ let lastError = 0
 let sessionId: string | undefined
 let lastHud = ''
 let compactSince = 0
+let lastTasks = ''
+const workerSprites = new WorkerSprites()
+const miniPet = new MiniPet(() => vscode.postMessage({ type: 'projectInspect' }))
+document.getElementById('mini-review')!.addEventListener('click', () => vscode.postMessage({ type: 'projectInspect' }))
 
 for (const [id, type] of [['session', 'session'], ['theme', 'theme'], ['pet', 'pet'], ['scene', 'scene'], ['reset', 'reset'], ['demo', 'demo'], ['preview', 'preview']]) {
   document.getElementById(id)!.addEventListener('click', () => vscode.postMessage({ type }))
 }
 window.addEventListener('message', (event: MessageEvent) => {
   const message = object(event.data)
+  if (message.type === 'project') miniPet.project(message.state as ProjectState)
   if (message.type === 'theme') {
     const theme = readTheme(message.theme)
     if (!theme.errors) {
@@ -44,6 +53,7 @@ window.addEventListener('message', (event: MessageEvent) => {
     if (object(message.snapshot).compacting && !snapshot.compacting) compactSince = Date.now()
     snapshot = message.snapshot as Snapshot
     if (snapshot.sessionId !== sessionId) {
+      workerSprites.clear()
       sessionId = snapshot.sessionId
       animation = { mode: 'idle', since: Date.now(), x: 0, dir: 1, tick: 0, target: '', working: false }
       lastError = snapshot.errorAt
@@ -70,6 +80,7 @@ function paint(picture: Canvas): void {
       context.fillRect(x * scale, top + y * scale, scale, scale)
     }
   }
+  miniPet.place(scale, top)
 }
 
 function drawHud(data: Snapshot, now: number): void {
@@ -117,7 +128,9 @@ function simulated(now: number): Snapshot {
   const modes: Mode[] = ['think', 'read', 'search', 'edit', 'bash', 'web', 'agent', 'error', 'cheer', 'idle']
   const index = Math.floor((now - demoSince) / 3000) % modes.length
   const mode = modes[index]
-  return { ...emptySnapshot(), working: index < 8, tools: index > 0 && index < 7 ? 1 : 0, mode: mode === 'error' || mode === 'cheer' || mode === 'idle' || mode === 'think' ? 'bash' : mode as Snapshot['mode'], target: 'demo.ts', lastToolAt: now - 5000, errorAt: mode === 'error' ? demoSince + index * 3000 : 0, agents: mode === 'agent' ? ['demo-mini'] : [], usage: { hp: 72, mp: 81, st: 93 } }
+  const toolMode = mode === 'error' || mode === 'cheer' || mode === 'idle' || mode === 'think' ? 'bash' : mode as Snapshot['mode']
+  const tools = index > 0 && index < 7 ? 1 : 0
+  return { ...emptySnapshot(), working: index < 8, tools, toolStates: tools ? [{ id: 'demo-call', mode: toolMode, target: 'demo.ts', since: demoSince + index * 3000, source: 'call' }] : [], mode: toolMode, target: 'demo.ts', lastToolAt: now - 5000, errorAt: mode === 'error' ? demoSince + index * 3000 : 0, agents: mode === 'agent' ? ['demo-mini'] : [], usage: { hp: 72, mp: 81, st: 93 } }
 }
 
 setInterval(() => {
@@ -131,18 +144,23 @@ setInterval(() => {
   const newAgent = data.agentStates?.some(a => !a.doneAt && now - a.since < 1500) ?? false
   // Fast tools can start and finish between observer polls. Briefly retain the
   // last observed prop, while the counter continues to show actual active calls.
-  const recentTool = data.lastToolAt > 0 && now >= data.lastToolAt && now - data.lastToolAt < 1200
+  const recentTool = data.lastToolAt > 0 && now >= data.lastToolAt && now - data.lastToolAt < TOOL_DEPARTURE_MS
   const trail = trailWidth(minis.length)
+  const workers = taskMiniLayout(preferences.minis === false ? [] : data.toolStates ?? [], now, width, trail)
   const activity: Activity = { isWorking: data.working || recentTool, activeTools: data.tools || (recentTool || newAgent ? 1 : 0), activeMode: data.tools || recentTool ? data.mode : newAgent ? 'agent' : data.mode, activeTarget: preferences.targets ? data.target : '', lastToolAt: data.lastToolAt, room: Math.max(0, width - BODY_W - trail), obstacles: layout ? obstacleSpans(layout) : [], trail }
   if (!data.compacting) animation = step(animation, activity, now, settings)
   if (data.errorAt && data.errorAt !== lastError) { animation = fail(animation, now); lastError = data.errorAt }
   const elapsed = now - animation.since
-  const mode = data.compacting ? 'sleep' : animation.leap ? 'jump' : animation.mode
+  const naturalWidth = compose(body, animation.mode, 0, animation.dir, 'ok', minis).w
+  const naturalLeft = Math.max(0, Math.min(Math.round(animation.x), width - naturalWidth))
+  const social = miniPet.prepare(width, naturalLeft, naturalWidth, now, !data.working && !data.tools && !recentTool && !data.awaitingApproval && !data.compacting && !workers.all.length && !minis.length && animation.mode !== 'error' && !animation.leap && (animation.mode === 'idle' || animation.mode === 'sleep'))
+  if (social) { animation.x = social.main.x; animation.dir = social.main.dir }
+  const mode = data.compacting ? 'sleep' : social ? social.main.mode : animation.leap ? 'jump' : animation.mode === 'sleep' && miniPet.keepsCompany ? 'idle' : animation.mode
   const ms = animation.leap ? leapClipMs((now - animation.leap.since) * settings.pace) : elapsed * settings.pace
   const mood = data.usage.hp !== undefined && data.usage.hp <= 25 ? 'critical' : data.usage.hp !== undefined && data.usage.hp <= 50 ? 'worried' : [data.usage.mp, data.usage.st].some(v => v !== undefined && v < 20) ? 'tired' : 'ok'
-  const posed = compose(body, mode, ms, animation.dir, mood, minis)
+  const posed = social ? interactionMain(body, social) : compose(body, mode, ms, animation.dir, mood, minis)
   const picture = data.compacting ? compactionBath(posed, animation.dir, now - compactSince) : posed
-  const left = Math.max(0, Math.min(Math.round(animation.x), width - picture.w))
+  const left = social ? Math.round(social.main.x) : Math.max(0, Math.min(Math.round(animation.x), width - picture.w))
   let band: Canvas
   if (body.scene && layout) band = drawBand(body, body.scene, layout, picture, left, now)
   else {
@@ -150,12 +168,35 @@ setInterval(() => {
     // Copy numeric pixels without turning theme data into markup.
     for (let y = 0; y < picture.h; y++) for (let x = 0; x < picture.w; x++) if (x + left < width) band.px[y * width + x + left] = picture.px[y * picture.w + x]
   }
+  workerSprites.draw(body, band, workers.shown, now, left, picture.w, miniPet.left)
+  miniPet.draw(body, band, left, picture.w, now)
   paint(band)
   stage.setAttribute('aria-label', `${body.name}, ${data.compacting ? 'compacting' : mode}`)
   stage.dataset.scene = body.scene ? 'on' : 'off'
+  stage.dataset.taskMinis = String(workers.shown.length)
+  stage.dataset.taskOverflow = String(workers.overflow)
+  stage.dataset.interaction = social?.kind ?? ''
+  stage.dataset.habitat = social?.phase ?? 'paused'
+  stage.dataset.mainX = String(left)
+  stage.dataset.workers = JSON.stringify(workerSprites.current())
+  const tasksKey = JSON.stringify(workers.all.map(tool => [tool.id, tool.mode, tool.doneAt, tool.failed, tool.cancelled, tool.awaitingResult, preferences.targets ? tool.target : '']))
+  if (tasksKey !== lastTasks) {
+    lastTasks = tasksKey
+    const list = document.getElementById('task-minis')!
+    list.replaceChildren()
+    for (const tool of workers.all) {
+      const badge = document.createElement('span')
+      badge.className = 'task-badge'
+      badge.dataset.mode = tool.mode
+      badge.dataset.state = tool.awaitingResult ? 'awaiting result' : tool.doneAt === undefined ? 'running' : tool.cancelled ? 'stopped' : tool.failed ? 'failed' : 'finished'
+      badge.textContent = `${taskLabel(tool.mode)} · ${badge.dataset.state}${preferences.targets && tool.target ? ': ' + tool.target : ''}`
+      list.append(badge)
+    }
+  }
   document.getElementById('activity')!.textContent = `${data.tools} active tool${data.tools === 1 ? '' : 's'} · ${data.agents.length} active agent${data.agents.length === 1 ? '' : 's'}`
-  const extra = minis.length > MAX_MINIS ? ` (+${minis.length - MAX_MINIS} minis)` : ''
-  status.textContent = preferences.statusLine === false ? '' : data.awaitingApproval ? 'Waiting for your approval' : data.compacting ? 'Compacting context…' : statusLine(animation.mode, animation.since, elapsed, preferences.targets ? animation.target : '', body.look.lines[animation.mode]) + extra
+  const extra = (minis.length > MAX_MINIS ? ` (+${minis.length - MAX_MINIS} agent minis)` : '') + (workers.overflow ? ` (+${workers.overflow} tool minis)` : '')
+  const pending = workers.all.filter(tool => tool.awaitingResult).length
+  status.textContent = preferences.statusLine === false ? '' : data.awaitingApproval ? 'Waiting for your approval' : data.compacting ? 'Compacting context…' : pending && !data.tools ? `Awaiting result from ${pending} background process${pending === 1 ? '' : 'es'}` : social ? social.text : statusLine(mode, animation.since, elapsed, preferences.targets ? animation.target : '', body.look.lines[mode]) + extra
   status.style.color = lineColor(animation.mode, body.look.lineColors)
   drawHud(data, now)
 }, 100)
