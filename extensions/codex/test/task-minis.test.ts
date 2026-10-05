@@ -5,9 +5,110 @@ import { animate, readTheme } from '../../../plugins/pixel-pet/hooks/theme'
 import { canvas } from '../../../plugins/pixel-pet/hooks/pixels'
 import { SessionReducer, emptySnapshot, combineActivity, TOOL_DEPARTURE_MS, type ToolState } from '../protocol'
 import { sanitizeHook } from '../bridge'
-import { taskMiniLayout, drawTaskMinis, WorkerSprites, SUMMON_MS } from '../task-minis'
+import { taskMiniLayout, drawTaskMinis, WorkerSprites, SUMMON_MS, RESULT_MS, drawWorkZones, layoutWorkZones, observedMinis, PORTAL_COLORS } from '../task-minis'
+import { layWorkScene } from '../work-zones'
+import { bundledTheme } from '../scene-theme'
+import { layScene } from '../../../plugins/pixel-pet/hooks/scene'
 
 const now = Date.now()
+
+test('subagents use stable portal workers alongside tools without an implicit agent trail', () => {
+  const data = { ...emptySnapshot(), agents: ['sub'], agentStates: [{ id: 'sub', since: now }], toolStates: [{ id: 'read', mode: 'read' as const, target: '', since: now, source: 'call' as const }] }
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme)
+  const sprites = new WorkerSprites()
+  const first = canvas(200, 22)
+  sprites.draw(body, first, observedMinis(data, now), now, 100, 19, 0)
+  assert.deepEqual(sprites.current().map(worker => worker.id).sort(), ['agent:sub', 'read'])
+  assert.ok(sprites.current().every(worker => worker.phase === 'summon'))
+  assert.ok(first.px.slice(0, 7 * first.w).includes(0xc39bff))
+  assert.ok(first.px.slice(8 * first.w).every(pixel => pixel < 0), 'neither kind of mini appears before the light lands')
+  sprites.draw(body, canvas(200, 22), observedMinis(data, now + 100), now + 100, 100, 19, 0)
+  assert.equal(sprites.current().length, 2, 'repeated snapshots never create a second subagent mini')
+  assert.deepEqual(observedMinis({ ...emptySnapshot(), agents: ['legacy'] }, now).map(tool => tool.id), ['agent:legacy'])
+  assert.equal(observedMinis({ ...emptySnapshot(), agents: ['old'], agentStates: [] }, now).length, 0, 'lifecycle records take precedence over stale agent names')
+  const wrapped = { ...data, toolStates: [{ ...data.toolStates[0], wrapper: true }] }
+  assert.equal(taskMiniLayout(observedMinis(wrapped, now), now, 200, 0).all.length, 2, 'a subagent cannot suppress an unrelated fallback wrapper worker')
+})
+
+test('completion-only tools and agents materialize through a portal before delivering results', () => {
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme)
+  const sprites = new WorkerSprites()
+  const data = { ...emptySnapshot(), agentStates: [{ id: 'ended', since: now - 1000, doneAt: now, failed: true }], toolStates: [{ id: 'fast', mode: 'edit' as const, target: '', since: now, doneAt: now, source: 'item' as const }] }
+  const opening = canvas(200, 22)
+  sprites.draw(body, opening, observedMinis(data, now), now, 100, 19, 0)
+  assert.ok(sprites.current().every(worker => worker.phase === 'summon'))
+  assert.ok(opening.px.slice(0, 7 * opening.w).includes(0xc39bff))
+  assert.ok(opening.px.slice(8 * opening.w).every(pixel => pixel < 0), 'already-completed workers cannot pop directly into view')
+  assert.equal(sprites.results().length, 2, 'completion is retained during the entrance')
+  for (let age = 100; age < SUMMON_MS; age += 100) {
+    sprites.draw(body, canvas(200, 22), [], now + age, 100, 19, 0)
+    assert.ok(sprites.current().every(worker => worker.phase === 'summon'))
+  }
+  sprites.draw(body, canvas(200, 22), [], now + SUMMON_MS, 100, 19, 0)
+  assert.ok(sprites.current().every(worker => worker.phase !== 'summon'))
+  for (let age = SUMMON_MS + 100; age <= RESULT_MS; age += 100) sprites.draw(body, canvas(200, 22), [], now + age, 100, 19, 0)
+  assert.equal(sprites.current().length, 0)
+})
+
+test('work buildings remain visible without any task and fit narrow and wide scenes', () => {
+  for (const width of [48, 72, 200, 2000]) {
+    const band = canvas(width, 22)
+    const zones = drawWorkZones(band, now)
+    assert.ok(['Library', 'Writing desk', 'Terminal'].every(name => zones.some(zone => zone.name === name)))
+    assert.ok(zones.every(zone => zone.x >= 0 && zone.x + zone.width <= width))
+    for (const zone of zones) {
+      assert.ok(Array.from({ length: 20 - zone.top }, (_, row) => band.px.slice((zone.top + row) * width + zone.x, (zone.top + row) * width + zone.x + zone.width)).flat().some(pixel => pixel >= 0))
+    }
+    assert.equal(new WorkerSprites().current().length, 0, 'idle buildings never create tasks or agents')
+  }
+})
+
+test('workplaces reflow into distinct buildings, stations or a shared lodge without overlapping separate structures', () => {
+  for (const width of [48, 69, 70, 143, 144, 239, 240, 500]) {
+    const zones = layoutWorkZones(width)
+    assert.equal(new Set(zones.map(zone => zone.kind)).size, 1)
+    assert.equal(zones[0].kind, width < 70 ? 'lodge' : width < 144 ? 'station' : 'building')
+    const structures = [...new Map(zones.map(zone => [zone.group, zone])).values()]
+    assert.ok(structures.every(zone => zone.x >= 0 && zone.x + zone.width <= width))
+    assert.ok(structures.every((zone, index) => index === 0 || structures[index - 1].x + structures[index - 1].width < zone.x))
+    assert.equal(zones.some(zone => zone.mode === 'web'), width >= 240)
+  }
+})
+
+test('resizing reassigns an active worker to its new workplace without summoning it again', () => {
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme), sprites = new WorkerSprites()
+  const tool: ToolState = { id: 'resize', mode: 'bash', target: '', since: now, source: 'process' }
+  sprites.draw(body, canvas(200, 22), [tool], now, 0, 19, 10)
+  const first = sprites.current()[0]
+  sprites.draw(body, canvas(2000, 22), [tool], now + 100, 0, 19, 10)
+  assert.ok(sprites.current()[0].goal > 1500, 'expanding moves the terminal destination into the new layout')
+  sprites.draw(body, canvas(72, 22), [tool], now + 200, 0, 19, 10)
+  const last = sprites.current()[0]
+  assert.equal(last.born, first.born)
+  assert.equal(last.id, first.id)
+  assert.ok(last.x >= 0 && last.x + 18 <= 72 && last.goal + 18 <= 72, 'shrinking keeps the existing worker and destination inside the panel')
+})
+
+test('village scenery keeps original obstacle navigation and places trees outside building footprints', () => {
+  const parsed = readTheme(bundledTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8'))))
+  assert.equal(parsed.errors, undefined)
+  const scene = animate(parsed.theme).scene!
+  const original = layScene(scene, 152), village = layWorkScene(scene, 152)
+  assert.deepEqual(village.obstacles, original.obstacles, 'new buildings cannot silently change the original leap behavior')
+  assert.ok(village.decor.some(item => item.drift === undefined && item.rows.length >= 8), 'trees remain visible in a medium panel')
+  const sites = layoutWorkZones(152)
+  for (const plant of village.decor.filter(item => item.drift === undefined)) {
+    const size = Math.max(...plant.rows.map(row => row.length))
+    assert.ok(sites.every(site => plant.x + size <= site.x || plant.x >= site.x + site.width))
+  }
+  assert.equal(layWorkScene(scene, 152), village, 'repeated frames reuse the same bounded scene layout')
+})
 const row = (type: string, payload: Record<string, unknown>, at = now) => ({ type, timestamp: new Date(at).toISOString(), payload })
 const hook = (event: string, extra: Record<string, unknown> = {}, at = now) => row('pixel_pet_hook', { event, ...extra }, at)
 
@@ -123,8 +224,8 @@ test('workers summon beside the main pet, walk independently and retain identity
     return band
   }
   const band = draw(now)
-  assert.ok(band.px.includes(0xc39bff), 'magic circle is visible before the worker emerges')
-  assert.ok(band.px.includes(0x97f2ff), 'orbiting magic light')
+  assert.ok(band.px.includes(PORTAL_COLORS.bash), 'blue Run circle is visible before the worker emerges')
+  assert.ok(band.px.includes(0xc2d9ff), 'orbiting magic light uses the lighter Run hue')
   const born = sprites.current()
   assert.ok(born.every(worker => Math.abs(worker.origin - 130) <= 60 && worker.origin > 0))
   assert.equal(new Set(born.map(worker => worker.origin)).size, 3, 'simultaneous workers have separate summoning circles')
@@ -135,14 +236,43 @@ test('workers summon beside the main pet, walk independently and retain identity
   draw(now + 7400, [...tasks].reverse())
   assert.deepEqual(sprites.current().map(worker => [worker.id, worker.born, worker.x]), settled.map(worker => [worker.id, worker.born, worker.x]))
   draw(now + 7500, tasks.map(tool => tool.id === 'one' ? { ...tool, doneAt: now + 7500 } : tool))
-  assert.equal(sprites.current().find(worker => worker.id === 'one')?.phase, 'depart')
+  assert.equal(sprites.current().find(worker => worker.id === 'one')?.phase, 'return')
   draw(now + 7600, tasks.slice(1))
-  assert.deepEqual(sprites.current().map(worker => worker.id), ['two', 'three'])
+  assert.deepEqual(sprites.current().map(worker => worker.id), ['one', 'two', 'three'], 'result journey persists after the tool leaves the protocol snapshot')
   sprites.clear()
   draw(now + 8000, tasks.slice(0, 1), 72, 0)
   assert.ok(sprites.current().every(worker => worker.x >= 0 && worker.x + 18 <= 72 && worker.origin >= 33))
   draw(now + 8100, [{ ...tasks[0], awaitingResult: true }], 72, 0)
   assert.equal(sprites.current()[0].phase, 'pending')
+})
+
+test('read, edit and run workers choose distinct zones and carry independent results back without extending real work', () => {
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme)
+  const sprites = new WorkerSprites()
+  const tasks: ToolState[] = ['read', 'edit', 'bash'].map(mode => ({ id: mode, mode: mode as ToolState['mode'], target: '', since: now, source: 'call' }))
+  const draw = (time: number, list: ToolState[]) => { const band = canvas(200, 22); sprites.draw(body, band, list, time, 130, 33, 0); return band }
+  draw(now, tasks)
+  for (let time = now + 100; time <= now + 10000; time += 100) draw(time, tasks)
+  const workers = sprites.current()
+  assert.deepEqual(workers.map(worker => worker.zone), ['Library', 'Writing desk', 'Terminal'])
+  assert.ok(workers[0].goal < workers[1].goal && workers[1].goal < workers[2].goal)
+  assert.ok(workers.every(worker => worker.phase === 'work'))
+  const completed = tasks.map(tool => ({ ...tool, doneAt: now + 10100, failed: tool.id === 'bash' }))
+  draw(now + 10100, completed)
+  const phases = new Set<string>()
+  let failurePixels = false
+  for (let time = now + 10200; time <= now + 10100 + RESULT_MS; time += 100) {
+    const band = draw(time, [])
+    for (const worker of sprites.current()) phases.add(worker.phase)
+    if (sprites.current().some(worker => worker.phase === 'error')) failurePixels ||= band.px.includes(0xff8585) && band.px.includes(0x66534b)
+  }
+  assert.ok(['return', 'handoff', 'error', 'depart'].every(phase => phases.has(phase)))
+  assert.ok(failurePixels, 'failure has a red sign and soot marks instead of success parcel')
+  assert.equal(sprites.current().length, 0)
+  assert.equal(sprites.results().length, 0)
+  assert.equal(tasks.some(tool => tool.doneAt !== undefined), false, 'animation never mutates observed lifecycle records')
 })
 
 test('summoning starts in the sky, projects light downward and reveals the worker on the ground', () => {
@@ -159,7 +289,7 @@ test('summoning starts in the sky, projects light downward and reveals the worke
   const opening = draw(0)
   const origin = sprites.current()[0].origin
   const center = Math.round(origin + 3)
-  assert.ok(opening.px.slice(0, 7 * opening.w).includes(0xc39bff), 'source circle is in the sky')
+  assert.ok(opening.px.slice(0, 7 * opening.w).includes(PORTAL_COLORS.edit), 'source circle is in the sky with the edit color')
   assert.ok(opening.px.slice(8 * opening.w).every(pixel => pixel < 0), 'no ground circle or worker before the light arrives')
   const reaching = draw(500)
   assert.ok(reaching.px[10 * reaching.w + center] >= 0, 'beam extends down from the sky')
@@ -173,4 +303,44 @@ test('summoning starts in the sky, projects light downward and reveals the worke
   const finished = draw(SUMMON_MS + 400)
   assert.ok(finished.px.slice(0, 7 * finished.w).every(pixel => pixel < 0), 'sky sigil closes after summoning')
   assert.equal(tasks[0].id, 'worker', 'effects do not create extra tasks or agents')
+})
+
+test('interrupted workers depart neutrally and hiding minis clears cached deliveries', () => {
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme)
+  const sprites = new WorkerSprites()
+  const stopped: ToolState = { id: 'stopped', mode: 'edit', target: '', since: now, doneAt: now + 100, cancelled: true, source: 'call' }
+  const band = canvas(72, 22)
+  sprites.draw(body, band, [stopped], now + 100, 0, 33, 64)
+  assert.equal(sprites.current()[0].phase, 'depart')
+  assert.equal(band.px.includes(0xffe28a), false, 'interrupt must not create a parcel or high-five sparkle')
+  sprites.draw(body, canvas(72, 22), [], now + 900, 0, 33, 64)
+  assert.equal(sprites.current().length, 0)
+  sprites.draw(body, canvas(72, 22), [{ ...stopped, id: 'finished', cancelled: false }], now + 1000, 0, 33, 64)
+  assert.equal(sprites.results().length, 1)
+  sprites.clear()
+  sprites.draw(body, canvas(48, 22), [], now + 1100, 0, 33, 40)
+  assert.equal(sprites.results().length, 0)
+  assert.equal(sprites.current().length, 0)
+})
+
+test('workers reach distant work zones and deliver results within the animation window on ultrawide scenes', () => {
+  const parsed = readTheme(JSON.parse(readFileSync('plugins/pixel-pet/assets/slime.json', 'utf8')))
+  assert.equal(parsed.errors, undefined)
+  const body = animate(parsed.theme)
+  const sprites = new WorkerSprites()
+  const tool: ToolState = { id: 'wide', mode: 'bash', target: '', since: now, source: 'process' }
+  const draw = (time: number, list: ToolState[]) => sprites.draw(body, canvas(2000, 22), list, time, 20, 19, 10)
+  for (let time = now; time <= now + 16000; time += 100) draw(time, [tool])
+  assert.ok(sprites.current()[0].x > 1500, 'terminal zone follows the full scene width')
+  assert.equal(sprites.current()[0].phase, 'work')
+  draw(now + 16100, [{ ...tool, doneAt: now + 16100 }])
+  let delivered = false
+  for (let time = now + 16200; time <= now + 16100 + RESULT_MS; time += 100) {
+    draw(time, [])
+    delivered ||= sprites.current().some(worker => worker.phase === 'handoff')
+  }
+  assert.ok(delivered, 'a distant worker must reach the AI pet before fading away')
+  assert.equal(sprites.current().length, 0)
 })

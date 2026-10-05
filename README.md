@@ -11,10 +11,10 @@
 Observed tools summon worker minis beside the AI pet through animated magic circles. Parallel background processes keep separate workers until their recorded exits; pet observation and animations run locally without added AI calls or tokens.
 
 <p align="center">
-  <img src="docs/images/codex-pet-summoning.gif" width="816" alt="Demo: sky sigils project light to the ground, summon Read, Edit and Run mini pets, and close as the workers start independent tasks">
+  <img src="docs/images/codex-pet-summoning.gif" width="816" alt="Demo: sky portals summon task workers; they return with parcels on success or error signs on failure">
 </p>
 
-The summoning demo shows a sky sigil opening, light reaching the ground, and a worker materializing before walking to work. Three workers start at different times, work together, then finish independently. It is recorded from the production renderer with simulated task events. Recreate this GIF with `npm.cmd run record:codex-pets -- --only summon`.
+The demo shows sky summoning and parallel Read, Edit and Run workers. Workplace buildings are temporarily disabled. Successful workers bring parcels back and celebrate with the AI pet; a failed worker returns with soot and a clickable error sign. Three workers start at different times and finish independently. It is recorded from the production renderer with simulated task events. Recreate this GIF with `npm.cmd run record:codex-pets -- --only summon`.
 
 For the most complete activity tracking, install from this cloned repo (Node 22.18+, VS Code `code` command and the Codex extension required):
 
@@ -22,7 +22,7 @@ For the most complete activity tracking, install from this cloned repo (Node 22.
 npm.cmd run install:codex
 ```
 
-Version **0.9.1** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools, including the corrected Windows hook launcher. Run the command inside the cloned `pixel-pet` folder. It then opens the bundled Codex CLI for hook review:
+Version **0.11.3** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools, including the corrected Windows hook launcher. Run the command inside the cloned `pixel-pet` folder. It then opens the bundled Codex CLI for hook review:
 
 1. If Codex asks for folder trust, approve this cloned repo. Then enter `/hooks`, review and trust all 12 **Pixel Pet observer** entries.
 2. Exit the review CLI. In VS Code, press **Ctrl+Shift+P**, run **Developer: Reload Window**, then **Pixel Pet: Open Companion**, and start a new Codex conversation.
@@ -31,6 +31,12 @@ Version **0.9.1** installs dependencies, builds/packages the companion, installs
 The default Codex slime has a meadow with grass, a round shaded sun with rays, rocks, flowers, trees and drifting clouds. **Pet** selects Slime, Duck or Alien; **Scene** changes the background while keeping the pet; **Reset** restores the default. Existing custom themes keep their own scene (or no scene). Reading, searching, web, editing and terminal props use the same pixel engine as Claude. Short tool actions remain visible briefly even when the active-tool counter has already returned to zero.
 
 The main pet represents the AI session. Each observed tool call gets a worker mini in the same scene: reading with a book, editing with a pencil, running a command with a terminal, and searching/browsing with the matching prop. Concurrent calls get separate workers; completion, failure or interruption ends each one independently. Workers leave after a brief result animation. Up to six fit on screen, with an overflow count and text badges for the rest; narrow panels show fewer. Worker minis, actual subagents, and the persistent project Mini are separate. All their rendering is local and adds no AI calls or tokens. Trusted hooks supply the fullest timing; when fallback only records a completed child item, its worker is labeled finished, never running.
+
+The scene fills the available panel width without a fixed horizontal limit. Short panels keep the compact HUD in its own corner. Workplace buildings are temporarily disabled: the ordinary meadow stays visible, while task minis, summoning, result delivery and pet interactions continue.
+
+Tool workers and subagent minis now share the sky-portal entrance. The main pet no longer draws a second, unsummoned subagent trail. A short task first observed after completion also materializes through its portal before carrying the already-recorded result back; its badge stays finished throughout the animation.
+
+Portal colors identify the work: Read green, Edit gold, Run blue, Search orange, Web turquoise and Delegate/subagent purple. The main hue stays fixed throughout the entrance; failures use pink-red runes and pending results use gray runes.
 
 Mini automatically watches project results beside the AI pet. It picks up supported build/test/check commands reported by Codex and build/test task results from VS Code, plus editor errors. While a recorded check runs it shows a small busy effect; success makes it celebrate and show a green check, and errors or failed checks produce a red flag. Without evidence it stays neutral. Click to inspect the recorded result; no separate job or Check action is needed. Relevant file edits invalidate old results, and results reset on reload. By default only observed checks enter the checklist; pixelPet.projectChecks can additionally require specific VS Code task names. All observation and animation run locally without model calls, extra commands or tokens. Feed/Play/Rest remain optional local interactions.
 When the AI is idle, the pets explore independently instead of sticking together. Each chooses its own walk, pause, flower, butterfly, pebble hop or stretch. Occasionally they walk over to meet, play a scene together, then head off in different directions. The shuffled playlist now has **20 scenes**, including a paper-plane ride, fishing for a boot, a magic portal, a block tower, a pillow fight, a leaf boat and a photo booth. Each has its own movement and pixel props. Feed invites Mini for a picnic; Play starts catch. Real work, approval, compaction and running project checks interrupt idle behavior; **Rest** pauses it and **Wake** resumes it. Everything is local animation, with no model calls or extra AI tokens.

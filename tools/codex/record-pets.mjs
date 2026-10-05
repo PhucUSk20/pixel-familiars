@@ -50,16 +50,16 @@ const bundle = await build({ tsconfig: 'tsconfig.codex.json', bundle: true, writ
   const workerTasks = [
     { id:'read-demo', mode:'read', target:'', since:1000, doneAt:7200, source:'call' },
     { id:'edit-demo', mode:'edit', target:'', since:2600, doneAt:8000, source:'call' },
-    { id:'run-demo', mode:'bash', target:'', since:4200, doneAt:8800, source:'process' },
+    { id:'run-demo', mode:'bash', target:'', since:4200, doneAt:8800, failed:true, source:'process' },
   ];
   window.recordWorkerPhases = new Set();
   window.recordWorkerPeak = 0;
   window.recordPetFrame = (kind, elapsed) => {
     if (kind === 'summon') {
-      background(816, 194, 'Demo: sky portals summon Read, Edit and Run workers');
+      background(816, 194, 'Demo: summon task workers and bring results back');
       const now = elapsed + 1000;
       const tasks = workerTasks.filter(task => now >= task.since && now - task.doneAt < TOOL_DEPARTURE_MS).map(task => now < task.doneAt ? { ...task, doneAt:undefined } : task);
-      const picture = compose(body, tasks.length ? 'think' : 'idle', elapsed, 1);
+      const picture = compose(body, workers.current().some(worker => worker.phase === 'handoff') ? 'cheer' : tasks.some(task => task.doneAt === undefined) ? 'think' : 'idle', elapsed, 1);
       const band = drawBand(body, body.scene, layScene(body.scene, 196), picture, 80, elapsed);
       workers.draw(body, band, tasks, now, 80, picture.w, 180);
       pixels(band, 16, 44, 4);
@@ -68,7 +68,7 @@ const bundle = await build({ tsconfig: 'tsconfig.codex.json', bundle: true, writ
       if (!visible.length) window.recordWorkerPhases.add('empty');
       window.recordWorkerPeak = Math.max(window.recordWorkerPeak, visible.length);
       window.recordWorkerRemaining = visible.length;
-      const phase = elapsed < 180 ? 'Sky sigil opens' : elapsed < 650 ? 'Light projects downward' : elapsed < 1100 ? 'Worker materializes on the ground' : elapsed < SUMMON_MS ? 'Portal closes' : visible.length ? 'Independent task workers: ' + visible.length : 'All workers have finished';
+      const phase = elapsed < 180 ? 'Sky sigil opens' : elapsed < 650 ? 'Light projects downward' : elapsed < 1100 ? 'Worker materializes on the ground' : elapsed < SUMMON_MS ? 'Portal closes' : visible.some(worker => worker.phase === 'error') ? 'Failed: sooty worker raises a clickable error sign' : visible.some(worker => worker.phase === 'handoff') ? 'Success: parcel delivery and high five' : visible.some(worker => worker.phase === 'return') ? 'Workers bring results back to the AI pet' : visible.length ? 'Read / Edit / Run workers' : 'All workers have finished';
       context.fillStyle = '#a7caff'; context.font = '13px monospace'; context.fillText(phase, 16, 143);
       context.fillStyle = '#b6c4df'; context.font = '12px monospace';
       context.fillText('Demo: staggered starts, parallel work, separate completions. No AI calls.', 16, 168);
@@ -113,7 +113,7 @@ try {
   const only = process.argv.indexOf('--only');
   const selection = only >= 0 ? process.argv[only + 1] : undefined;
   if (only >= 0 && !['life', 'gallery', 'summon'].includes(selection)) throw new Error('--only must be life, gallery or summon');
-  for (const [kind, frames, filename] of [['life', 400, 'codex-pet-life'], ['gallery', 76, 'codex-pet-actions'], ['summon', 110, 'codex-pet-summoning']].filter(([kind]) => !selection || kind === selection)) {
+  for (const [kind, frames, filename] of [['life', 400, 'codex-pet-life'], ['gallery', 76, 'codex-pet-actions'], ['summon', 180, 'codex-pet-summoning']].filter(([kind]) => !selection || kind === selection)) {
     const directory = join(temporary, kind)
     await mkdir(directory)
     for (let index = 0; index < frames; index++) {
@@ -128,8 +128,8 @@ try {
     }
     if (kind === 'summon') {
       const coverage = await page.evaluate(() => ({ phases:[...window.recordWorkerPhases], peak:window.recordWorkerPeak, remaining:window.recordWorkerRemaining }))
-      if (coverage.peak !== 3 || coverage.remaining !== 0 || !['summon', 'work', 'depart', 'empty'].every(phase => coverage.phases.includes(phase))) throw new Error('Incomplete worker summoning demo: ' + JSON.stringify(coverage));
-      console.log('Recorded sky summoning, three parallel workers and independent departures');
+      if (coverage.peak !== 3 || coverage.remaining !== 0 || !['summon', 'work', 'return', 'handoff', 'error', 'depart', 'empty'].every(phase => coverage.phases.includes(phase))) throw new Error('Incomplete worker summoning demo: ' + JSON.stringify(coverage));
+      console.log('Recorded sky summoning, parallel workers, parcel delivery and failed worker return');
     }
     const encoded = spawnSync('ffmpeg', ['-y', '-v', 'error', '-framerate', '10', '-i', join(directory, '%04d.png'), '-vf', 'split[a][b];[a]palettegen=max_colors=192:stats_mode=full[p];[b][p]paletteuse=dither=none:diff_mode=rectangle', '-loop', '0', join(output, `${filename}.gif`)], { windowsHide: true, stdio: 'inherit' })
     if (encoded.error || encoded.status !== 0) throw encoded.error ?? new Error(`ffmpeg failed: ${encoded.status}`)

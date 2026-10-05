@@ -14,6 +14,52 @@ Upstream base: `02eb10a`, branch `codex-vscode`. Local VS Code Codex version: `2
 
 The actual VS Code extension-host UI was not automated. After reloading the window, use **Pixel Pet: Open Companion** to check it beside Codex.
 
+## Codex 0.11.3 portal colors by work type — 2026-10-05
+
+- Read/Edit/Run/Search/Web/Delegate portals use green/gold/blue/orange/turquoise/purple respectively. Each worker keeps its entrance hue; normal runes and beam edges use a lighter shade of that hue. Failed observations use pink-red accents and pending results gray accents without replacing the work color.
+- TypeScript, all 65 tests, build, packaging and Chromium host smoke passed. Re-recorded and visually inspected the README summoning GIF; installed VSIX 0.11.3. Animations remain local and hook trust is unchanged.
+
+## Codex 0.11.2 unified mini summoning — 2026-10-05
+
+- Removed the Codex webview's implicit `compose` subagent trail. Actual subagent lifecycle records now enter the same stable-ID sky-portal worker renderer as tools, preserving active-agent counts and the persistent local project Mini. Subagents do not suppress unrelated fallback wrapper workers.
+- Completion-only observations and tools that finish during their entrance now finish materializing before result delivery. Failed-result soot and clickable signs stay hidden during summoning; cancellation cannot reveal an unmaterialized sprite.
+- All 65 tests, TypeScript, build, VSIX packaging and Chromium host smoke passed. New regression cases cover stable subagent identities, portals before the first mini pixels, already-completed tools/agents, retained result delivery, and no legacy trail. The UI harness exercises native SubagentStart/Stop through one portal worker and checks the absence of a duplicate trail.
+- Installed VSIX 0.11.2 and confirmed it with the VS Code extension inventory. Hook definitions and trust were not changed. Reload Window is required to apply the renderer in the existing VS Code window.
+
+## Codex 0.11.1 buildings temporarily disabled — 2026-10-04
+
+- Disabled workplace rendering and restored the ordinary shared meadow layout. The dormant artwork module remains available for future redesign. Task minis, summoning, result delivery, error inspection, pet interactions and full-width/compact-HUD behavior remain active. Chromium host smoke passed, including the disabled-building assertion.
+- Removed building names from visible task badges/result cards and re-recorded the README worker GIF without buildings. Dependency installation, all 63 tests, TypeScript, build and packaging passed; the meadow screenshot was visually inspected. Hook definitions and trust remain unchanged.
+- The UI harness now treats the order of concurrent Read/Edit/Run calls with identical timestamps as unspecified, while still checking all three modes and their independent lifecycles.
+
+## Codex 0.11.0 responsive workshop village — 2026-10-04
+
+- Replaced the small nine-pixel props with cohesive pixel architecture: a terracotta library with book windows and a door, a teal maker studio with an awning and workbench, a blue terminal pavilion with screen/server details, and a domed observatory. Signs and shared trim/shadow/path colors give each place a recognizable role.
+- Scene widths 240+ show four buildings; 144–239 show three; 70–143 use compact stations; below 70 use one WORK lodge with three colored bays. Separate structures have non-overlapping bounds. Resizing updates live worker destinations while retaining their IDs and birth times.
+- Landscaping moves the theme's static plants into available gaps and reserves the full layout's right skyline for the sun/moon. Original rocks remain in the foreground with unchanged obstacle coordinates, preserving leap behavior. Layout caching is bounded to eight widths per scene.
+- Dependency installation, TypeScript, all 63 tests, build, packaging and Chromium host smoke passed. Added regressions cover all reflow boundaries, live worker resize, non-overlapping buildings, retained trees and unchanged obstacle navigation. Existing Direct hooks/fallback, privacy, quota, task-result delivery and local-only animation checks still pass.
+- Visually inspected `dist/codex-wide-panel.png`, `dist/codex-sidebar.png`, `dist/codex-compact-workplaces.png`, `dist/codex-short-panel.png` and the production-module worker GIF. Hook definitions and trust records remain unchanged.
+
+## Codex 0.10.1 permanent work buildings — 2026-10-04
+
+- The library, writing desk and terminal now render as fixed background landmarks even with zero active tools. Wider scenes include the observatory. Buildings are painted before the main pet, so pets remain in front; No scene hides the landmarks. Worker completion no longer removes the buildings.
+- Dependency installation, TypeScript, all 60 tests, build, VSIX packaging and Chromium host smoke passed. The UI checks idle buildings with a zero active-tool count, hides them with No scene, and retains existing task/result, privacy and narrow/ultrawide layout checks.
+- Re-recorded the production-module worker GIF with permanent landmarks. `dist/codex-wide-panel.png` and the GIF cover image were visually inspected. Hook definitions and trust records remain unchanged.
+
+## Codex 0.10.0 work zones, result delivery and full-width scenes — 2026-10-04
+
+- Dependency installation, TypeScript, all 59 tests, build, VSIX packaging and Chromium host smoke passed. Added lifecycle regressions cover work-zone positions, independent return/handoff/error/fade states, neutral interruption, cached-result clearing and successful delivery from a 2,000-pixel logical scene.
+- Chromium observes three parallel tools walking to Library, Writing desk and Terminal, successful parcel delivery with the idle main pet cheering, and a failed worker's clickable sign opening a local metadata card. No animation or result-card inspection sends host/model requests; Problems remains an explicit local action. Counts continue to represent observed active tools rather than workers carrying completed results.
+- Removed the 200-pixel logical width limit. Ground reaches the canvas's far edge on 1,600x300, 2,560x220 and 3,840x160 panels, as well as the existing narrow/short cases; all compact HUD readings fit without horizontal scrolling. Pixels shrink with vertical space, and long-distance workers accelerate their return.
+- Updated the README's 18-second GIF from production modules with simulated events, covering sky summoning, work zones, success parcels and failed returns. Screenshots `dist/codex-parallel-workers.png`, `dist/codex-worker-delivery.png`, `dist/codex-worker-error.png` and `dist/codex-wide-panel.png` were visually inspected.
+- Shared Claude modules, hook definitions and trust records were not changed. The new local VSIX requires a window reload; no additional hook review is needed for this update.
+
+## Codex 0.9.2 short-panel HUD
+
+- Panels up to 420 px tall use a compact HUD beside the scene. Percentages remain visible, bar widths shrink and reset details remain in native tooltips and accessible row labels. Panels at most 180 px tall omit the connection line. Taller panels restore the normal full HUD; hiding HUD returns its column to the scene. Canvas height follows its CSS height so the scene and Mini hit target stay aligned.
+- Chromium checks 440x360, 320x220, 260x160 and 640x400: all three readings remain inside the viewport, the HUD does not cover the scene, no horizontal overflow occurs, hidden HUD releases its width, and growing the panel restores the full layout. Resizing sends no new host/model requests. Screenshot: `dist/codex-short-panel.png`.
+- npm ci reports zero vulnerabilities; typecheck, 56 tests, build/package and the full Chromium harness pass. The 0.9.2 VSIX is installed locally. Hook definitions and runtime were not changed, so this UI update does not require another hook review.
+
 ## Codex 0.9.1 Windows hook launcher and sky summoning
 
 - Reproduced a PowerShell ParserError from the installed hook command: a quoted Node executable was interpreted as a string instead of invoked. All 12 existing entries were trusted, but the observer events directory contained no native events. Reloading cannot fix that command. The Windows launcher now invokes Node explicitly through an encoded PowerShell script, forwards UTF-8 JSON and works with both PowerShell and cmd outer shells. Its timeout allows cold Windows shell startup. Hook definitions are backed up and merged; existing trust records are not changed. Changed definitions require a fresh native review.

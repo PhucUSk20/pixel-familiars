@@ -3,7 +3,7 @@
   "displayName": "Pixel Pet for Codex",
   "description": "An animated pixel companion for local Codex sessions in VS Code.",
   "publisher": "pixel-pet-local",
-  "version": "0.9.1",
+  "version": "0.11.3",
   "license": "MIT",
   "repository": {
     "type": "git",
