@@ -1,4 +1,4 @@
-# Pixel Pet for Codex 0.11.3
+# Pixel Pet for Codex 0.11.4
 
 This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 

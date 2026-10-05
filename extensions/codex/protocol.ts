@@ -9,6 +9,9 @@ export type Snapshot = {
   sessionId?: string
   turnId?: string
   activityAt?: number
+  turnStartedAt?: number
+  turnEndedAt?: number
+  turnCancelled?: boolean
   working: boolean
   tools: number
   toolStates?: ToolState[]
@@ -20,7 +23,7 @@ export type Snapshot = {
   lastToolAt: number
   errorAt: number
   agents: string[]
-  agentStates?: { id: string; since: number; doneAt?: number; failed?: boolean }[]
+  agentStates?: { id: string; since: number; doneAt?: number; failed?: boolean; cancelled?: boolean; mode?: ToolMode }[]
   hookAt?: number
   compacting?: boolean
   awaitingApproval?: boolean
@@ -170,10 +173,13 @@ export class SessionReducer {
         case 'item_started': case 'item_completed': this.applyItem(payload, at); break
         case 'task_started': case 'turn_started': case 'user_message':
           this.snapshot.working = true
+          this.snapshot.turnStartedAt = at
           if (typeof payload.turn_id === 'string') this.snapshot.turnId = payload.turn_id
           break
         case 'task_complete': case 'task_completed': case 'turn_complete': case 'turn_aborted':
           this.snapshot.working = false
+          this.snapshot.turnEndedAt = at
+          this.snapshot.turnCancelled = payload.type === 'turn_aborted'
           this.endAllTools(at, payload.type !== 'turn_aborted')
           this.agents.clear()
           for (const [id, agent] of this.agentStates) if (agent.doneAt === undefined) this.agentStates.set(id, { ...agent, doneAt: at })

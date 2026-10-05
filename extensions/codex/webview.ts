@@ -7,7 +7,7 @@ import { readSettings } from '../../plugins/pixel-pet/hooks/settings'
 import { hudRows, frameColor } from '../../plugins/pixel-pet/hooks/hud'
 import type { Anim, Mode } from '../../plugins/pixel-pet/types'
 import { emptySnapshot, object, TOOL_DEPARTURE_MS, type Preferences, type Snapshot } from './protocol'
-import { taskMiniLayout, WorkerSprites, taskLabel, observedMinis } from './task-minis'
+import { taskMiniLayout, WorkerSprites, workerLabel, observedMinis } from './task-minis'
 import { compactionBath } from './compaction'
 import { MiniPet } from './mini-pet'
 import { interactionMain } from './interactions'
@@ -40,7 +40,7 @@ function inspectTask(id: string): void {
   if (!tool) return
   const card = document.getElementById('worker-result')!
   card.hidden = false
-  document.getElementById('worker-result-title')!.textContent = `${taskLabel(tool.mode)} · ${tool.cancelled ? 'Stopped' : tool.failed ? 'Failed' : 'Finished'}`
+  document.getElementById('worker-result-title')!.textContent = `${workerLabel(tool)} · ${tool.cancelled ? 'Stopped' : tool.failed ? 'Failed' : 'Finished'}`
   document.getElementById('worker-result-text')!.textContent = `${Math.max(0, Math.round(((tool.doneAt ?? Date.now()) - tool.since) / 1000))}s${preferences.targets && tool.target ? ' · ' + tool.target : ''}`
   card.scrollIntoView({ block: 'nearest' })
 }
@@ -240,7 +240,7 @@ setInterval(() => {
       badge.className = 'task-badge'
       badge.dataset.mode = tool.mode
       badge.dataset.state = tool.awaitingResult ? 'awaiting result' : tool.doneAt === undefined ? 'running' : tool.cancelled ? 'stopped' : tool.failed ? 'failed' : 'finished'
-      badge.textContent = `${taskLabel(tool.mode)} · ${badge.dataset.state}${preferences.targets && tool.target ? ': ' + tool.target : ''}`
+      badge.textContent = `${workerLabel(tool)} · ${badge.dataset.state}${preferences.targets && tool.target ? ': ' + tool.target : ''}`
       list.append(badge)
     }
   }

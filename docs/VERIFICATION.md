@@ -14,6 +14,14 @@ Upstream base: `02eb10a`, branch `codex-vscode`. Local VS Code Codex version: `2
 
 The actual VS Code extension-host UI was not automated. After reloading the window, use **Pixel Pet: Open Companion** to check it beside Codex.
 
+## Codex 0.11.4 child lifecycle recovery and installed version — 2026-10-05
+
+- Confirmed two lingering agents in the user's other workspace had completed child turns but no corresponding parent SubagentStop. Replaying the parent hooks and reconciling workspace/parent-scoped child logs reduced active agents from 2 to 0 without changing parent tool counts.
+- Child discovery validates the first session header and explicit parent-thread metadata. Forked logs may later contain copied parent session_meta records; child identity stays anchored to the validated header. Incremental readers must finish historical replay before their state is used. Scans and cached readers are bounded; no AI calls, transcript output or extra commands are introduced.
+- Observed child tool modes now animate the corresponding agent mini near the main pet. Without observed tool details, it patrols neutrally. Labels distinguish Agent from individual tool workers. Real resumed child turns restart their worker lifecycle; terminal/aborted turns clear stale active counts so the idle habitat can resume.
+- The bottom of each panel displays the version from the loaded VS Code ExtensionContext manifest. Each window must reload after installing an update.
+- TypeScript, all 70 tests, build and VSIX packaging passed. Chromium host smoke passed, including a lost-Stop fixture repaired from a child log, resumed idle habitat, separate child/parent tool counts, and the exact version footer. VSIX 0.11.4 installed and confirmed in the extension inventory.
+
 ## Codex 0.11.3 portal colors by work type — 2026-10-05
 
 - Read/Edit/Run/Search/Web/Delegate portals use green/gold/blue/orange/turquoise/purple respectively. Each worker keeps its entrance hue; normal runes and beam edges use a lighter shade of that hue. Failed observations use pink-red accents and pending results gray accents without replacing the work color.

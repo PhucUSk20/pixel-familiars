@@ -93,7 +93,8 @@ const vscode = {
   },
   ConfigurationTarget: { Workspace: 2 },
 }
-const context = { extensionUri: { fsPath: root }, subscriptions, globalState: { get: key => state.get(key), update: async (key, value) => { state.set(key, value) } }, workspaceState: { get: key => workspaceState.get(key), update: async (key, value) => { workspaceState.set(key, value) } } }
+const manifest = JSON.parse(await readFile('package.json', 'utf8'))
+const context = { extension: { packageJSON: manifest }, extensionUri: { fsPath: root }, subscriptions, globalState: { get: key => state.get(key), update: async (key, value) => { state.set(key, value) } }, workspaceState: { get: key => workspaceState.get(key), update: async (key, value) => { workspaceState.set(key, value) } } }
 const host = { exports: {} }
 const require = createRequire(import.meta.url)
 runInNewContext(await readFile('dist/extension.cjs', 'utf8'), { module: host, exports: host.exports, require: name => name === 'vscode' ? vscode : require(name), process, Buffer, console, setInterval, clearInterval, setTimeout, clearTimeout })
@@ -126,6 +127,7 @@ try {
   await page.exposeFunction('pixelPetBridge', data => { webviewMessages.push(data); return receive(data) })
   await page.addInitScript(() => { window.acquireVsCodeApi = () => ({ postMessage: data => window.pixelPetBridge(data) }) })
   await page.goto(url)
+  assert.equal(await page.locator('#extension-version').textContent(), `Pixel Pet · Extension v${manifest.version}`)
   await page.waitForFunction(() => document.querySelector('#connection').textContent.includes('smoke-se'))
   await page.waitForFunction(() => document.querySelector('#status').textContent.length > 0)
   await page.waitForFunction(() => document.querySelector('#stage').dataset.scene === 'on')
@@ -437,6 +439,16 @@ try {
   hook('Interrupt')
   await page.waitForFunction(() => document.querySelector('#stage').dataset.taskMinis === '0' && document.querySelector('#activity').textContent.startsWith('0 active tools'))
   await page.setViewportSize({ width: 640, height: 460 })
+  const childLog = join(sessions, 'lost-hook-child.jsonl')
+  hook('UserPromptSubmit')
+  hook('SubagentStart', { agent_id: 'lost-hook-child' })
+  await writeFile(childLog, record('session_meta', { id: 'lost-hook-child', cwd: root, source: { subagent: { thread_spawn: { parent_thread_id: 'smoke-session' } } } }) + record('event_msg', { type: 'task_started' }) + record('response_item', { type: 'function_call', call_id: 'child-edit', name: 'apply_patch', arguments: '{}' }))
+  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('1 active agent') && document.querySelector('#task-minis').textContent.includes('Agent · Edit'))
+  assert.ok((await page.locator('#activity').textContent()).startsWith('0 active tools'), 'child work does not inflate parent tool counts')
+  hook('Stop')
+  await appendFile(childLog, record('response_item', { type: 'function_call_output', call_id: 'child-edit', output: '{}' }) + record('event_msg', { type: 'task_complete' }))
+  await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('0 active agents') && JSON.parse(document.querySelector('#stage').dataset.workers).every(worker => worker.id !== 'agent:lost-hook-child'))
+  await page.waitForFunction(() => document.querySelector('#stage').dataset.habitat !== 'paused')
   hook('UserPromptSubmit')
   hook('SubagentStart', { agent_id: 'portal-subagent' })
   await page.waitForFunction(() => document.querySelector('#activity').textContent.includes('1 active agent') && JSON.parse(document.querySelector('#stage').dataset.workers).some(worker => worker.id === 'agent:portal-subagent' && worker.phase === 'summon'))

@@ -30,7 +30,7 @@ async function metadata(path: string): Promise<Record<string, unknown>> {
 }
 
 /** Scan recent date folders, rather than repeatedly walking every historical transcript. */
-export async function discoverSessions(home: string, roots: string[], includeCli = false): Promise<Session[]> {
+export async function discoverSessions(home: string, roots: string[], includeCli = false, parentId?: string): Promise<Session[]> {
   const base = join(home, 'sessions')
   const directories: string[] = []
   const years = (await readdir(base, { withFileTypes: true })).filter(d => d.isDirectory() && /^\d{4}$/.test(d.name)).sort((a, b) => b.name.localeCompare(a.name))
@@ -61,7 +61,8 @@ export async function discoverSessions(home: string, roots: string[], includeCli
       const meta = await metadata(candidate.path)
       const source = meta.source
       const vscode = source === 'vscode' || meta.originator === 'codex_vscode'
-      if (!vscode && !(includeCli && source === 'cli')) continue
+      const parent = object(object(object(source).subagent).thread_spawn).parent_thread_id
+      if (parentId ? parent !== parentId : !vscode && !(includeCli && source === 'cli')) continue
       if (typeof meta.cwd !== 'string' || !matchesWorkspace(meta.cwd, roots)) continue
       sessions.push({ ...candidate, id: String(meta.id ?? meta.session_id ?? ''), cwd: meta.cwd })
     } catch (error) {
@@ -81,6 +82,7 @@ export class SessionTail {
   private lastSize = -1
   private lastModified = -1
   malformed = 0
+  caughtUp = false
   constructor(readonly path: string) {}
 
   async poll(): Promise<Snapshot> {
@@ -100,6 +102,7 @@ export class SessionTail {
         this.position += bytesRead
         this.consume(buffer.subarray(0, bytesRead))
       }
+      this.caughtUp = this.position >= info.size && this.pending.length === 0 && !this.discarding
       return this.reducer.current()
     } finally { await handle.close() }
   }

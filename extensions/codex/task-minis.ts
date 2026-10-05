@@ -12,13 +12,14 @@ export const PORTAL_COLORS: Record<ToolState['mode'], number> = {
 }
 export const workZone = (mode: ToolState['mode']): string => mode === 'read' ? 'Library' : mode === 'edit' ? 'Writing desk' : mode === 'bash' ? 'Terminal' : mode === 'agent' ? 'Dispatch' : 'Observatory'
 export const taskLabel = (mode: ToolState['mode']): string => ({ read: 'Read', search: 'Search', edit: 'Edit', bash: 'Run', web: 'Web', agent: 'Delegate' })[mode]
+export const workerLabel = (tool: ToolState): string => tool.id.startsWith('agent:') ? tool.mode === 'agent' ? 'Agent' : `Agent · ${taskLabel(tool.mode)}` : taskLabel(tool.mode)
 
 /** Subagents share the portal renderer; compose must not also paint an agent trail. */
 export function observedMinis(data: Snapshot, now: number): ToolState[] {
   const agents: NonNullable<Snapshot['agentStates']> = data.agentStates ?? data.agents.map(id => ({ id, since: now }))
   return [...data.toolStates ?? [], ...agents.map(agent => ({
-    id: `agent:${agent.id}`, mode: 'agent' as const, target: '', since: agent.since,
-    doneAt: agent.doneAt, failed: agent.failed,
+    id: `agent:${agent.id}`, mode: agent.mode ?? 'agent', target: '', since: agent.since,
+    doneAt: agent.doneAt, failed: agent.failed, cancelled: agent.cancelled,
     source: 'item' as const,
   }))]
 }
@@ -27,7 +28,7 @@ export function observedMinis(data: Snapshot, now: number): ToolState[] {
 export function taskMiniLayout(states: ToolState[], now: number, width: number, agentTrail: number) {
   const recent = states.filter(tool => tool.doneAt === undefined || now - tool.doneAt < TOOL_DEPARTURE_MS)
   // A subagent is not evidence of nested tool calls inside an exec wrapper.
-  const isAgent = (tool: ToolState) => tool.id.startsWith('agent:') && tool.mode === 'agent'
+  const isAgent = (tool: ToolState) => tool.id.startsWith('agent:')
   const visible = [...visibleTools(recent.filter(tool => !isAgent(tool))), ...recent.filter(isAgent)]
   const ordered = visible.sort((a, b) => Number(a.doneAt !== undefined) - Number(b.doneAt !== undefined) || a.since - b.since || a.id.localeCompare(b.id))
   // Reserve the main pet's widest prop, its agent trail, and the project mini.
@@ -122,8 +123,10 @@ export class WorkerSprites {
     const free = (x: number) => x >= 0 && x + SLOT <= band.w && (x + SLOT <= mainLeft - 2 || x >= mainLeft + mainWidth + 2) && (x + SLOT <= projectLeft - 2 || x >= projectLeft + 8) && occupied.every(left => Math.abs(left - x) >= SLOT)
     const placements: Placement[] = []
     for (const tool of shown) {
-      const previous = this.workers.get(tool.id)
-      const anchor = stationAnchor(band.w, tool.mode)
+      const cached = this.workers.get(tool.id)
+      const previous = cached?.result && tool.doneAt === undefined && tool.since > (cached.result.doneAt ?? 0) ? undefined : cached
+      const subagent = tool.id.startsWith('agent:')
+      const anchor = subagent ? clamp(mainLeft + mainWidth + SLOT + 4, band.w - SLOT) : stationAnchor(band.w, tool.mode)
       const candidates = Array.from({ length: Math.max(0, band.w - SLOT + 1) }, (_, x) => x).filter(free).sort((a, b) => Math.abs(a - anchor) - Math.abs(b - anchor))
       const goal = previous && !resized && free(previous.goal) ? previous.goal : candidates[0] ?? clamp(mainLeft - SLOT - 2, band.w - SLOT)
       const onLeft = goal < mainLeft
@@ -131,7 +134,7 @@ export class WorkerSprites {
       occupied.push(goal)
       // Parallel workers get separate circles instead of hiding in one portal.
       const origin = clamp((onLeft ? mainLeft - SLOT - 2 : mainLeft + mainWidth + 2) + (onLeft ? -1 : 1) * siblings * SLOT, band.w - SLOT)
-      const worker: Worker = previous ?? { id: tool.id, x: origin, origin, goal, born: now, zone: workZone(tool.mode), portalColor: PORTAL_COLORS[tool.mode], visible: true, phase: 'summon' }
+      const worker: Worker = previous ?? { id: tool.id, x: origin, origin, goal, born: now, zone: workZone(tool.mode), portalColor: subagent ? PORTAL_COLORS.agent : PORTAL_COLORS[tool.mode], visible: true, phase: 'summon' }
       worker.visible = true
       worker.zone = workZone(tool.mode)
       worker.goal = goal; worker.x = clamp(worker.x, band.w - SLOT); worker.origin = clamp(worker.origin, band.w - SLOT)
@@ -183,7 +186,9 @@ export class WorkerSprites {
       worker.phase = tool.awaitingResult ? 'pending' : age < SUMMON_MS ? 'summon' : travelling ? 'travel' : 'work'
       this.workers.set(tool.id, worker)
       const entering = Math.max(0, Math.min(1, (age - 650) / 450))
-      placements.push({ x: worker.x, scale: entering, lift: age < SUMMON_MS ? 0 : Math.abs(Math.sin(now / 350)) * 1, travelling, dir: goal < worker.x ? -1 : 1 })
+      const patrol = subagent && tool.mode === 'agent' && age >= SUMMON_MS && !travelling && !tool.awaitingResult
+      const stride = patrol ? Math.sin(age / 650) * 3 + 3 : 0
+      placements.push({ x: worker.x + stride, scale: entering, lift: age < SUMMON_MS ? 0 : Math.abs(Math.sin(now / 350)) * 1, travelling, dir: patrol ? Math.cos(age / 650) >= 0 ? 1 : -1 : goal < worker.x ? -1 : 1, ...(patrol && { mode: Math.abs(Math.cos(age / 650)) > 0.35 ? 'run' as const : 'idle' as const }) })
       if (age < SUMMON_MS) {
         const center = Math.round(worker.origin + 3)
         // Preserve the work identity throughout the entrance. Status affects
