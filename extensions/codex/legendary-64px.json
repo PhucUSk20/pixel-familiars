@@ -1,0 +1,23 @@
+{
+  "version": 1,
+  "kind": "legendary",
+  "name": "Mega Rayquaza",
+  "width": 64,
+  "height": 64,
+  "fps": 20,
+  "frameCount": 160,
+  "columns": 16,
+  "durationMs": 8000,
+  "atlas": "legendary-64px-atlas.png",
+  "animations": [
+    "hover",
+    "spine-wave",
+    "tail-sway",
+    "ribbon-flow",
+    "fin-flex"
+  ],
+  "eventDriven": false,
+  "source": "user-provided screenshot; background removed in code",
+  "repair": "small lower-belly portion obscured by screenshot badge, repaired with coded polygons",
+  "reduction": "nearest-neighbor from unchanged large animation; no redrawing"
+}

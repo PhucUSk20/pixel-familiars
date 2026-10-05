@@ -154,3 +154,35 @@ The actual VS Code extension-host UI was not automated. After reloading the wind
 - Native trust remains unchanged. Hook subprocesses in the test harness establish adapter behavior, not execution by an actual trusted Codex session. Log fallback remains limited for nested timing, subagent completion and compaction events.
 
 The preserved Claude plugin passes both strict validators with the VS Code bundled Claude `2.1.288`. Its existing suite has 74 passing and 1 failing test on Windows: `preview_theme writes the preview and leaves the pet on screen alone`, expecting the mock key `file:/tmp/mochi.html` but receiving `undefined`. The mod adapter/hooks were not edited. The generated HTML preview builds and executes successfully in Chrome. The standalone older `claude` executable does not accept `--strict`; use the bundled matching runtime for these checks. The original Claude-only TypeScript project requires its runtime-generated type package and was not used for the Codex build.
+
+## Mega Rayquaza 0.13.0 source-textured actions - 2026-10-05
+
+- Uses the supplied 128px artwork as a nearest-neighbor textured mesh; the rejected generic redraw is not imported by the runtime. Original mode still plays the unchanged 160 source frames. Source files remain unchanged.
+- Measured bindings articulate head/jaw, fins/arm, eleven body/tail controls and spatially masked tendrils. Five poses cover flight follow-through, tighter sleeping coil, raised-head/open-jaw roar, charge/recoil and streamline/braking. Effects attach to the articulated mouth. The user's linked 20-frame, 2.6-second GIF was inspected as a motion reference; it is not packaged.
+- Default Auto cycles all five actions. Manual selection blends for 1.2 seconds from the current pose, including rapid interrupted selections. Original comparison and Pause remain available. Mesh painting runs at 20fps and stops while hidden/paused, with no host/model requests.
+- npm ci, typecheck and all 76 tests passed. New tests verify source-palette fidelity, body deformation rather than translation, independent anatomy, face-bound effect origins, recoil/braking and continuous transitions. Chromium checks original-frame fidelity, distinct action frames, paused transitions and responsive layout; full companion regression also runs.
+- Recorded all five actions and transitions in docs/images/legendary-source-actions.gif using the production renderer with a deterministic local clock; README updated.
+
+## Legendary Pet 0.12.2 restore original appearance - 2026-10-05
+
+- Rejected the previous redraw after comparing the supplied 128px GIF with official Pokémon Mega Rayquaza artwork. The independent panel now plays the actual original 160 frames, with no anatomical redraw or mesh deformation. The incorrect five-action controls are removed; new faithful poses remain unfinished.
+- Reconstructed a native 128px atlas using nearest-neighbor sampling of the 384px display GIF and transparency only for its exact background color. Pixel comparison of every frame composited over the original background matches the source exactly.
+- Chromium verifies frame-for-frame rendering against the atlas, advancement, pause and narrow/wide layout. The complete companion UI suite passed. Typecheck, all 73 tests, build and packaging passed; three rig tests only concern the inactive experiment.
+- New README demo: docs/images/legendary-original.gif. Official appearance references and anatomy requirements are recorded in docs/MEGA-RAYQUAZA-DESIGN.md. External artwork is not packaged.
+
+## Legendary Pet 0.12.1 articulated motion - 2026-10-05
+
+- Replaced the flattened GIF runtime with a hand-authored 64px articulated green/gold dragon inspired by the source. Original GIF, manifest, atlas and reduction script remain unchanged; the new silhouette differs.
+- Spine travelling waves, banking return turns, delayed tail/ribbon movement, independently folding arms/fins, closed-eye coiled sleep, raised-head hinged-jaw roar, mouth-attached charge/recoil and streamlined dash/braking are drawn in native pixels.
+- A 1.1-second smooth pose blend begins from the current displayed pose, including rapid repeated selections. Head rotation uses the shortest angular path. Manual repeats and the automatic cycle transition instead of snapping.
+- npm ci, typecheck and 73 tests passed; targeted rig tests also passed after final pose refinements. Tests verify local body deformation rather than translation, coiling/streamlining, jaw opening/closing, braking, continuous interrupted transitions and bounded visible native sprites.
+- Recorded 445 frames at 10fps from the production renderer, covering all five actions and transitions: docs/images/legendary-actions.gif. Recorder uses only a deterministic local animation clock. README links the new demo.
+- Chromium Legendary checks passed: five action renderings, paused transitions, responsive layout and retained drawing after paused resize. The first full companion run encountered the existing compaction-position assertion; the full suite passed on rerun, including compaction, hooks/MCP, fallback and idle interactions.
+
+## Legendary Pet 0.12.0 - 2026-10-05
+
+- Added a separate Legendary Pet panel and command; no session, bridge or model requests in its renderer. Original companion and upstream art are untouched.
+- Recovered 160 transparent 64px atlas frames from the provided 384px display GIF, using nearest-neighbor downsampling and the exact background color. Original source files remain unchanged.
+- Five procedural choreographies over the original loop: flight, curled sleep, opening-jaw roar, Dragon Pulse and dash. These are not separately authored anatomical sprite sets. Auto, manual selection, pause and visibility suspension are local.
+- npm ci, typecheck, all 70 tests, build and VSIX package passed. Chromium verifies all five distinct rendered sequences, pause, narrow/wide layout and retained drawing after resizing while paused; the existing companion smoke suite also passes. Preview: dist/legendary-preview.png.
+- Native VS Code window must reload to load the new panel registration.

@@ -64,7 +64,7 @@ const state = new Map()
 const workspaceState = new Map()
 const options = { codexHome: directory }
 let pickLabel
-let provider, receive, html = '', page
+let provider, legendaryProvider, receive, html = '', legendaryMarkup = '', page
 const disposable = () => ({ dispose() {} })
 const vscode = {
   extensions: { getExtension: () => undefined },
@@ -88,7 +88,7 @@ const vscode = {
     createTerminal: () => ({ show() {}, sendText: command => terminalCommands.push(command) }),
     showInformationMessage: async () => undefined,
     createOutputChannel: () => ({ appendLine: console.log, dispose() {} }),
-    registerWebviewViewProvider: (_id, value) => { provider = value; return disposable() },
+    registerWebviewViewProvider: (id, value) => { if (id === 'pixelPet.companion') provider = value; if (id === 'pixelPet.legendary') legendaryProvider = value; return disposable() },
     showQuickPick: async items => pickLabel ? items.find(item => item.label === pickLabel) : items[0], showErrorMessage: async message => { throw new Error(message) },
   },
   ConfigurationTarget: { Workspace: 2 },
@@ -103,10 +103,19 @@ const server = createServer(async (request, response) => {
   if (request.url === '/gallery.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(gallery.outputFiles[0].text) }
   else if (request.url === '/gallery') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><style>body{background:#14171f;color:#ddd;display:grid;grid-template-columns:repeat(4,288px);gap:12px;font:16px monospace}p{text-align:center}canvas{background:#191c24}</style><script type="module" src="/gallery.js"></script>') }
   else if (request.url === '/webview.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/webview.js')) }
+  else if (request.url === '/legendary.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/legendary.js')) }
+  else if (request.url === '/legendary.png') { response.setHeader('Content-Type', 'image/png'); response.end(await readFile('extensions/codex/legendary-128px-atlas.png')) }
+  else if (request.url === '/legendary') { response.setHeader('Content-Type', 'text/html'); response.end(legendaryMarkup) }
   else { response.setHeader('Content-Type', 'text/html'); response.end(html) }
 })
 await new Promise(done => server.listen(0, '127.0.0.1', done))
 const url = `http://127.0.0.1:${server.address().port}`
+legendaryProvider.resolveWebviewView({ webview: {
+  cspSource: url,
+  set options(value) {},
+  set html(value) { legendaryMarkup = value },
+  asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.png') ? 'legendary.png' : 'legendary.js'}`,
+} })
 provider.resolveWebviewView({ visible: true, onDidDispose: disposable, webview: {
   set html(value) { html = value },
   asWebviewUri: () => `${url}/webview.js`,
@@ -121,6 +130,62 @@ try {
   assert.ok(terminalCommands[0].includes(root), 'hook review must open the workspace')
   const executablePath = process.env.PIXEL_PET_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)
   browser = await chromium.launch({ executablePath, headless: true })
+  const legendaryPage = await browser.newPage({ viewport: { width: 700, height: 320 } })
+  const legendaryErrors = []
+  legendaryPage.on('pageerror', error => legendaryErrors.push(String(error)))
+  await legendaryPage.goto(`${url}/legendary`)
+  await legendaryPage.waitForFunction(() => document.querySelector('#legendary').dataset.ready === 'true')
+  assert.equal(await legendaryPage.locator('#legendary').getAttribute('data-action'), 'fly')
+  await legendaryPage.locator('button[data-action="original"]').click()
+  await legendaryPage.waitForFunction(() => document.querySelector('#legendary').dataset.transition === 'false')
+  assert.equal(await legendaryPage.locator('#legendary').getAttribute('data-action'), 'original')
+  const firstOriginal = await legendaryPage.locator('#legendary').getAttribute('data-frame')
+  await legendaryPage.waitForFunction(frame => document.querySelector('#legendary').dataset.frame !== frame, firstOriginal)
+  await legendaryPage.locator('#pause').click()
+  const frozen = await legendaryPage.locator('#legendary').getAttribute('data-elapsed')
+  await legendaryPage.waitForTimeout(200)
+  assert.equal(await legendaryPage.locator('#legendary').getAttribute('data-elapsed'), frozen)
+  for (const viewport of [{ width: 240, height: 360 }, { width: 1600, height: 230 }]) {
+    await legendaryPage.setViewportSize(viewport)
+    await legendaryPage.waitForTimeout(100)
+    assert.equal(await legendaryPage.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'legendary toolbar must wrap without horizontal overflow')
+    assert.equal(await legendaryPage.locator('#legendary').evaluate(canvas => canvas.width > 0 && canvas.height > 0), true)
+    assert.equal(await legendaryPage.locator('#legendary').evaluate(canvas => [...canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data].some((value, index) => index % 4 === 3 && value > 0)), true, 'resizing a paused legendary must redraw rather than blank the canvas')
+  }
+  assert.deepEqual(legendaryErrors, [])
+  await legendaryPage.setViewportSize({ width: 700, height: 320 })
+  await legendaryPage.waitForTimeout(100)
+  assert.equal(await legendaryPage.locator('#legendary').evaluate(canvas => {
+    const expected = document.createElement('canvas'); expected.width = canvas.width; expected.height = canvas.height
+    const context = expected.getContext('2d'); context.imageSmoothingEnabled = false
+    const frame = Number(canvas.dataset.frame), available = Math.max(1, Math.min(canvas.width - 8, canvas.height - 6))
+    const scale = Math.min(3, available / 192), size = 192 * scale
+    const sprite = document.createElement('canvas'); sprite.width = sprite.height = 192
+    sprite.getContext('2d').drawImage(document.querySelector('#atlas'), (frame % 16) * 128, Math.floor(frame / 16) * 128, 128, 128, 32, 24, 128, 128)
+    context.drawImage(sprite, Math.round((canvas.width - size) / 2), Math.round((canvas.height - size) / 2), size, size)
+    return expected.toDataURL() === canvas.toDataURL()
+  }), true, 'display must match the original 128px frame exactly, with no redrawn anatomy')
+  await legendaryPage.locator('#pause').click()
+  const actionFrames = new Set()
+  for (const action of ['fly', 'sleep', 'roar', 'pulse', 'dash']) {
+    await legendaryPage.locator(`button[data-action="${action}"]`).click()
+    await legendaryPage.waitForFunction(() => document.querySelector('#legendary').dataset.transition === 'false')
+    assert.equal(await legendaryPage.locator('#legendary').getAttribute('data-action'), action)
+    actionFrames.add(await legendaryPage.locator('#legendary').evaluate(canvas => canvas.toDataURL()))
+  }
+  assert.equal(actionFrames.size, 5)
+  await legendaryPage.locator('#pause').click()
+  await legendaryPage.locator('button[data-action="sleep"]').click()
+  const still = await legendaryPage.locator('#legendary').evaluate(canvas => canvas.toDataURL())
+  assert.equal(await legendaryPage.locator('#legendary').getAttribute('data-transition'), 'true')
+  await legendaryPage.waitForTimeout(150)
+  assert.equal(await legendaryPage.locator('#legendary').evaluate(canvas => canvas.toDataURL()), still, 'a paused transition must not advance')
+  await legendaryPage.locator('#pause').click()
+  await legendaryPage.waitForFunction(() => document.querySelector('#legendary').dataset.transition === 'false')
+  assert.deepEqual(legendaryErrors, [])
+  await legendaryPage.screenshot({ path: 'dist/legendary-preview.png' })
+  await legendaryPage.close()
+  console.log('PASS: original 128px fidelity, five source-textured actions, continuous transitions, pause and responsive layouts')
   page = await browser.newPage({ viewport: { width: 640, height: 460 } })
   const errors = []
   page.on('pageerror', error => errors.push(String(error)))
@@ -408,7 +473,7 @@ try {
   let secondProvider
   const secondVscode = { ...vscode,
     workspace: { ...vscode.workspace, getConfiguration: () => ({ get: (key, fallback) => secondOptions[key] ?? fallback, update: async (key, value) => { secondOptions[key] = value } }) },
-    window: { ...vscode.window, registerWebviewViewProvider: (_id, value) => { secondProvider = value; return disposable() } },
+    window: { ...vscode.window, registerWebviewViewProvider: (id, value) => { if (id === 'pixelPet.companion') secondProvider = value; return disposable() } },
     commands: { ...vscode.commands, registerCommand: () => disposable() },
   }
   const secondHost = { exports: {} }

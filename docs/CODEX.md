@@ -1,4 +1,4 @@
-# Pixel Pet for Codex 0.11.4
+# Pixel Pet for Codex 0.13.0
 
 This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
@@ -143,3 +143,15 @@ Sessions must have `cwd` equal to a workspace or a descendant. Discovery covers 
 `npm run diagnose -- <workspace>` prints only real session activity/numeric usage. `node tools/codex/check-hooks.mjs <codex-path>` reads the native app-server hooks/list endpoint without model turns, hook execution or trust mutation.
 
 References: [upstream](https://github.com/Namenomeaning/pixel-pet), [VS Code webviews](https://code.visualstudio.com/api/extension-guides/webview), [Codex hooks including nested tools](https://learn.chatgpt.com/docs/hooks), [Codex IDE](https://learn.chatgpt.com/docs/codex/ide).
+
+## Independent Legendary Pet
+
+Run **Pixel Pet: Open Legendary Pet** after reloading VS Code. The separate panel shares no sessions, quotas, workers or themes with the Codex Companion. **Hình gốc** plays the original 128px animation; Auto cycles flight, sleep, roar, Pulse and dash. Individual buttons select an action and Pause freezes it. No AI calls or tokens are used.
+
+Version 0.13.0 uses the original first 128px frame as a textured mesh for the five new actions. Measured source bindings articulate the head, jaw, fins, arm, body and tail; spatial tendril masks keep body markings attached to the body. Nearest-neighbor texture sampling retains source colors. The mouth origin follows the articulated face for roar/Pulse effects. Sleep contracts the coil and folds the head/fins; dash opens the coil into a longer spine and returns to it while braking. Head/body movement follows the delayed flow seen in the user's animation reference. These are procedural poses from one view, not newly painted multi-view artwork.
+
+New actions blend for 1.2 seconds from the currently displayed pose, including an interrupted transition. Playback and mesh rasterization are capped at 20fps, and hidden or paused views stop advancement. Responsive scaling uses nearest-neighbor filtering. Original mode preserves all 160 GIF frames without mesh deformation. Only the exact solid background color was made transparent in the extracted atlas.
+
+The supplied GIFs, JSON and reduction script remain unchanged. The rejected generic rig remains inactive. Runtime animation uses mega-rayquaza.ts, legendary-webview.ts and legendary-128px-atlas.png. Recreate docs/images/legendary-source-actions.gif with `npm.cmd run record:legendary`; append `-- --original` to record the source loop (Chrome/Edge and ffmpeg required).
+
+Appearance reference: [official Pokémon Mega Rayquaza artwork](https://www.pokemon.co.jp/ex/usum/common/images/legacy/171102_03/poke_03.jpg), from the [Ultra Sun / Ultra Moon website](https://www.pokemon.co.jp/ex/usum/legacy/171102_03.html). Preserve the elongated pointed head, long paired horns, broad fins, green serpentine body with a black underside, gold/orange markings and long flowing tendrils. Use the user's 128px sprite as the pixel-art reference. Original artwork is used for visual comparison only, not bundled in the extension.

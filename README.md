@@ -16,13 +16,19 @@ Observed tools summon worker minis beside the AI pet through animated magic circ
 
 The demo shows sky summoning and parallel Read, Edit and Run workers. Workplace buildings are temporarily disabled. Successful workers bring parcels back and celebrate with the AI pet; a failed worker returns with soot and a clickable error sign. Three workers start at different times and finish independently. It is recorded from the production renderer with simulated task events. Recreate this GIF with `npm.cmd run record:codex-pets -- --only summon`.
 
+**Independent Legendary Pet:** run **Pixel Pet: Open Legendary Pet** to open its own panel tab. Version 0.13.0 builds five actions from the supplied 128px Mega Rayquaza artwork: flight, curled sleep, hinged-jaw roar, mouth-originating Dragon Pulse and streamlined dash/braking. A textured mesh moves the original head, jaw, fins, body, tail and tendrils while sampling their actual source pixels; it does not use the rejected generic redraw. Pose changes blend over 1.2 seconds, including rapid clicks. **Hình gốc** plays the untouched source frames for comparison; **Auto**, action buttons and Pause are local. The panel shares no Codex sessions and makes no AI/network calls.
+
+<p align="center"><img src="docs/images/legendary-source-actions.gif" width="700" alt="Five Mega Rayquaza actions built from the original 128px sprite with smooth transitions"></p>
+
+Recreate this production-renderer GIF with `npm.cmd run record:legendary`.
+
 For the most complete activity tracking, install from this cloned repo (Node 22.18+, VS Code `code` command and the Codex extension required):
 
 ```powershell
 npm.cmd run install:codex
 ```
 
-Version **0.11.4** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools, including the corrected Windows hook launcher. Run the command inside the cloned `pixel-pet` folder. It then opens the bundled Codex CLI for hook review:
+Version **0.13.0** installs dependencies, builds/packages the companion, installs the VS Code extension, and configures hooks and MCP theme tools, including the corrected Windows hook launcher. Run the command inside the cloned `pixel-pet` folder. It then opens the bundled Codex CLI for hook review:
 
 1. If Codex asks for folder trust, approve this cloned repo. Then enter `/hooks`, review and trust all 12 **Pixel Pet observer** entries.
 2. Exit the review CLI. In VS Code, press **Ctrl+Shift+P**, run **Developer: Reload Window**, then **Pixel Pet: Open Companion**, and start a new Codex conversation.

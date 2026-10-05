@@ -13,6 +13,7 @@ import { bundledTheme, meadowTheme, upgradeMeadow } from './scene-theme'
 import { ProjectMonitor } from './project'
 import { RESPONSIVE_CSS } from './layout'
 import { SubagentObserver } from './subagents'
+import { Legendary } from './legendary'
 
 const config = () => vscode.workspace.getConfiguration('pixelPet')
 const home = () => config().get<string>('codexHome') || process.env.CODEX_HOME || join(homedir(), '.codex')
@@ -283,6 +284,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const companion = new Companion(context, output)
   context.subscriptions.push(output, companion,
     vscode.window.registerWebviewViewProvider('pixelPet.companion', companion),
+    vscode.window.registerWebviewViewProvider('pixelPet.legendary', new Legendary(context)),
+    vscode.commands.registerCommand('pixelPet.openLegendary', () => vscode.commands.executeCommand('pixelPet.legendary.focus')),
     vscode.commands.registerCommand('pixelPet.open', () => vscode.commands.executeCommand('pixelPet.companion.focus')),
     vscode.commands.registerCommand('pixelPet.selectSession', () => companion.selectSession()),
     vscode.commands.registerCommand('pixelPet.importTheme', () => companion.importTheme()),
