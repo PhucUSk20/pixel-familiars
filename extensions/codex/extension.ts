@@ -272,7 +272,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     const terminal = vscode.window.createTerminal({ name: 'Pixel Pet · hook review', cwd, env: { CODEX_HOME: home() }, ...(process.platform === 'win32' ? { shellPath: 'powershell.exe' } : {}) })
     const quote = (value: string) => process.platform === 'win32' ? `'${value.replaceAll("'", "''")}'` : `'${value.replaceAll("'", "'\\''")}'`
     terminal.show()
-    terminal.sendText(`${process.platform === 'win32' ? '& ' : ''}${quote(codexExecutable())} --no-daemon -C ${quote(cwd)}`)
+    terminal.sendText(`${process.platform === 'win32' ? '& ' : ''}${quote(codexExecutable())} -C ${quote(cwd)}`)
     void vscode.window.showInformationMessage('In the Codex terminal, enter /hooks and review/trust only the Pixel Pet observer entries. Then reload VS Code and start a new Codex session.')
   }
   report(error: unknown): void { this.output.appendLine(error instanceof Error ? error.message : String(error)) }
