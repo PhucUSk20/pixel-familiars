@@ -39,10 +39,16 @@ try {
   await page.goto(url)
   await page.waitForFunction(() => document.querySelector('#legendary').dataset.ready === 'true')
   const originalOnly = process.argv.includes('--original')
-  await page.locator(`button[data-action="${originalOnly ? 'original' : 'auto'}"]`).click()
-  const filename = originalOnly ? 'legendary-original' : 'legendary-source-actions'
+  const actionIndex = process.argv.indexOf('--action')
+  const selectedAction = actionIndex < 0 ? undefined : process.argv[actionIndex + 1]
+  const durations = { fly: 8000, sleep: 10000, roar: 5500, pulse: 6500, dash: 6000 }
+  if (actionIndex >= 0 && !Object.hasOwn(durations, selectedAction)) throw new Error('--action requires fly, sleep, roar, pulse or dash')
+  if (originalOnly && selectedAction) throw new Error('Use either --original or --action')
+  await page.locator(`button[data-action="${originalOnly ? 'original' : selectedAction ?? 'auto'}"]`).click()
+  const filename = originalOnly ? 'legendary-original' : selectedAction ? `legendary-${selectedAction}` : 'legendary-source-actions'
+  const frameCount = originalOnly ? 165 : selectedAction ? durations[selectedAction] / 100 + 15 : 405
   const seen = new Set(), captures = []
-  for (let i = 0; i < (originalOnly ? 165 : 405); i++) {
+  for (let i = 0; i < frameCount; i++) {
     const data = await page.evaluate(time => {
       window.legendaryTick(time)
       const source = document.querySelector('#legendary')
@@ -58,7 +64,7 @@ try {
     await writeFile(join(temporary, `${String(i).padStart(4, '0')}.png`), Buffer.from(data.png, 'base64'))
     if ([30, 135, 215, 265, 330].includes(i)) captures.push(Buffer.from(data.png, 'base64'))
   }
-  if ((originalOnly ? seen.size !== 1 || !seen.has('original') : seen.size !== 5) || errors.length) throw new Error(`Incomplete recording: ${JSON.stringify({ seen: [...seen], errors })}`)
+  if ((originalOnly || selectedAction ? seen.size !== 1 || !seen.has(originalOnly ? 'original' : selectedAction) : seen.size !== 5) || errors.length) throw new Error(`Incomplete recording: ${JSON.stringify({ seen: [...seen], errors })}`)
   await writeFile(join(output, `${filename}.png`), captures[0])
   for (let i = 0; i < captures.length; i++) await writeFile(join(root, 'dist', `legendary-pose-${i}.png`), captures[i])
   const encoded = spawnSync('ffmpeg', ['-y', '-v', 'error', '-framerate', '10', '-i', join(temporary, '%04d.png'), '-vf', 'split[a][b];[a]palettegen=max_colors=240[p];[b][p]paletteuse=dither=none', '-loop', '0', join(output, `${filename}.gif`)], { windowsHide: true, stdio: 'inherit' })

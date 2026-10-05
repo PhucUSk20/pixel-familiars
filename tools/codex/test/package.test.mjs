@@ -23,6 +23,8 @@ test('VSIX contains install metadata and all runtime assets, excludes repository
     assert.ok(archive['extension/plugins/pixel-pet/skills/pixel-pet/FORMAT.md'])
     assert.ok(archive['extension/docs/images/codex-pet-life.gif'])
     assert.ok(archive['extension/docs/images/codex-pet-actions.gif'])
+    assert.ok(archive['extension/docs/images/codex-pet-summoning.gif'])
+    assert.ok(archive['extension/docs/CLAUDE.md'])
     assert.ok(strFromU8(archive['[Content_Types].xml']).includes('ContentType="image/gif"'), 'README demos must ship with a GIF content type')
     assert.equal(Object.keys(archive).some(path => path.includes('.env') || path.includes('node_modules') || path.includes('package-lock')), false)
     const xml = strFromU8(archive['extension.vsixmanifest'])

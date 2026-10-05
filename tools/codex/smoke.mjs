@@ -14,6 +14,8 @@ import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { build } from 'esbuild'
 
 const root = resolve('.')
+// Fresh clones do not contain the ignored upstream preview artifact.
+execFileSync(process.execPath, [join(root, 'tools/preview/build.mjs')], { cwd: root, stdio: 'pipe', windowsHide: true })
 const directory = await mkdtemp(join(tmpdir(), 'pixel-pet-smoke-'))
 const gallery = await build({ tsconfig: 'tsconfig.codex.json', bundle: true, write: false, format: 'esm', platform: 'browser', stdin: { resolveDir: root, contents: `
   import { INTERACTIONS, interactionFrame, interactionMain, drawInteraction } from './extensions/codex/interactions';

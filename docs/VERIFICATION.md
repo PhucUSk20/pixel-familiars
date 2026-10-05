@@ -155,6 +155,18 @@ The actual VS Code extension-host UI was not automated. After reloading the wind
 
 The preserved Claude plugin passes both strict validators with the VS Code bundled Claude `2.1.288`. Its existing suite has 74 passing and 1 failing test on Windows: `preview_theme writes the preview and leaves the pet on screen alone`, expecting the mock key `file:/tmp/mochi.html` but receiving `undefined`. The mod adapter/hooks were not edited. The generated HTML preview builds and executes successfully in Chrome. The standalone older `claude` executable does not accept `--strict`; use the bundled matching runtime for these checks. The original Claude-only TypeScript project requires its runtime-generated type package and was not used for the Codex build.
 
+## Pixel Familiars independent repository - 2026-10-05
+
+- Created an independent working directory and Git database from the complete contribution-branch history, including the current 0.13.1 sleep correction. The sibling pixel-pet working files, branch and remotes were left unchanged.
+- Main development targets PhucUSk20/pixel-familiars through origin; Namenomeaning/pixel-pet remains upstream for optional synchronization. README, extension display metadata, attribution and development instructions now describe Pixel Familiars and its maintainer. Existing extension identifiers remain compatible.
+- npm ci, typecheck, all 77 tests, build and VSIX packaging passed in this directory. The full Chromium suite passed. The UI test now generates its ignored upstream preview automatically, removing reliance on artifacts from an older working directory.
+
+## Mega Rayquaza 0.13.1 sleep correction - 2026-10-05
+
+- Sleeping head/jaw are drawn in front of the coil, with the muzzle resting beside it. The upper curved tendril uses a continuous head-attached deformation through sleep transitions and breathing. Flight, roar, Pulse and dash poses remain unchanged.
+- Added a regression fixture where head/jaw and body overlap; it confirms the head remains visible instead of being overwritten by later body triangles. npm ci, typecheck and all 77 tests passed. Full Chromium Legendary and companion checks passed.
+- Re-recorded the five-action README GIF and an isolated preview at docs/images/legendary-sleep.gif with the production renderer. Source artwork is unchanged.
+
 ## Mega Rayquaza 0.13.0 source-textured actions - 2026-10-05
 
 - Uses the supplied 128px artwork as a nearest-neighbor textured mesh; the rejected generic redraw is not imported by the runtime. Original mode still plays the unchanged 160 source frames. Source files remain unchanged.

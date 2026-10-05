@@ -6,8 +6,8 @@ export const MEGA_DURATION: Record<MegaAction, number> = { original: 8000, fly: 
 export const MEGA_TRANSITION = 1200
 export const MEGA_SIZE = 192
 type P = { x: number; y: number }
-type Binding = { point: P; weights: number[]; head: number; jaw: number; fin: number; ribbon: number; arm: number }
-export type MegaPose = { body: P[]; headX: number; headY: number; headAngle: number; jaw: number; fin: number; arm: number; ribbon: number; breath: number; angle: number; eyes: number; power: number }
+type Binding = { point: P; weights: number[]; head: number; jaw: number; fin: number; ribbon: number; upperRibbon: number; arm: number }
+export type MegaPose = { body: P[]; headX: number; headY: number; headAngle: number; jaw: number; fin: number; arm: number; ribbon: number; breath: number; angle: number; eyes: number; power: number; sleep: number }
 const spine: P[] = [[63, 48], [66, 64], [62, 80], [64, 94], [74, 106], [88, 103], [93, 90], [85, 77], [88, 67], [105, 73], [116, 70]].map(([x, y]) => ({ x, y }))
 const headPivot = { x: 49, y: 54 }, jawPivot = { x: 42, y: 68 }, finPivot = { x: 64, y: 44 }
 const mix = (a: number, b: number, t: number) => a + (b - a) * t
@@ -31,9 +31,9 @@ const ribbons: P[][] = [
   [[47, 55], [44, 65], [50, 79], [51, 93], [57, 96], [61, 94]],
   [[81, 54], [84, 66], [89, 70], [98, 68], [106, 72], [114, 69]],
 ].map(path => path.map(([x, y]) => ({ x, y })))
-function distanceToPath(p: P): number {
+function distanceToPath(p: P, paths: P[][] = ribbons): number {
   let distance = Infinity
-  for (const path of ribbons) for (let i = 1; i < path.length; i++) {
+  for (const path of paths) for (let i = 1; i < path.length; i++) {
     const a = path[i - 1], b = path[i], dx = b.x - a.x, dy = b.y - a.y
     const t = Math.max(0, Math.min(1, ((p.x - a.x) * dx + (p.y - a.y) * dy) / (dx * dx + dy * dy)))
     distance = Math.min(distance, Math.hypot(p.x - a.x - dx * t, p.y - a.y - dy * t))
@@ -44,11 +44,11 @@ function bind(point: P): Binding {
   const weights = spine.map(p => 1 / (6 + (point.x - p.x) ** 2 + (point.y - p.y) ** 2) ** 2)
   const total = weights.reduce((a, b) => a + b, 0)
   const head = inside(point, HEAD) ? 1 : 0
-  return { point, weights: weights.map(w => w / total), head, jaw: inside(point, JAW) ? 1 : 0, fin: inside(point, FIN) && !head ? 1 : 0, arm: inside(point, ARM) && !head ? 1 : 0, ribbon: head ? 0 : Math.max(0, 1 - distanceToPath(point) / 4) }
+  return { point, weights: weights.map(w => w / total), head, jaw: inside(point, JAW) ? 1 : 0, fin: inside(point, FIN) && !head ? 1 : 0, arm: inside(point, ARM) && !head ? 1 : 0, ribbon: head ? 0 : Math.max(0, 1 - distanceToPath(point) / 4), upperRibbon: ease((10 - distanceToPath(point, [ribbons[0]])) / 6) }
 }
 export function megaPose(action: MegaAction, ms: number): MegaPose {
   const t = ms / 1000, phase = ms / MEGA_DURATION[action]
-  const pose: MegaPose = { body: spine.map(p => ({ ...p })), headX: 0, headY: 0, headAngle: 0, jaw: 0, fin: 0, arm: 0, ribbon: 0, breath: 1, angle: 0, eyes: 0, power: 0 }
+  const pose: MegaPose = { body: spine.map(p => ({ ...p })), headX: 0, headY: 0, headAngle: 0, jaw: 0, fin: 0, arm: 0, ribbon: 0, breath: 1, angle: 0, eyes: 0, power: 0, sleep: 0 }
   if (action === 'original') return pose
   if (action === 'fly') {
     pose.headX = Math.sin(t * 1.4) * 2; pose.headY = Math.cos(t * 1.4) * 3
@@ -57,7 +57,8 @@ export function megaPose(action: MegaAction, ms: number): MegaPose {
     pose.ribbon = t
     pose.body = spine.map((p, i) => ({ x: p.x + Math.sin(t * 2 - i * .6) * (1 + i * .65), y: p.y + Math.cos(t * 2 - i * .6) * (1 + i * .5) }))
   } else if (action === 'sleep') {
-    pose.headX = 14; pose.headY = 18; pose.headAngle = -.35
+    // Rest the muzzle beside the coil, instead of burying it in its center.
+    pose.headX = 6; pose.headY = 8; pose.headAngle = -.1; pose.sleep = 1
     pose.fin = .25; pose.arm = -.25; pose.eyes = 1; pose.breath = 1 + Math.sin(t * 1.4) * .012; pose.ribbon = t * .18
     pose.body = spine.map((p, i) => ({ x: 78 + (p.x - 78) * (i < 2 ? .9 : .73), y: 91 + (p.y - 91) * .8 }))
   } else if (action === 'roar') {
@@ -81,7 +82,7 @@ export function megaPose(action: MegaAction, ms: number): MegaPose {
 }
 export function blendMega(from: MegaPose, to: MegaPose, progress: number): MegaPose {
   const t = ease(progress), result = { ...to, body: to.body.map((p, i) => ({ x: mix(from.body[i].x, p.x, t), y: mix(from.body[i].y, p.y, t) })) }
-  for (const key of ['headX', 'headY', 'headAngle', 'jaw', 'fin', 'arm', 'ribbon', 'breath', 'angle', 'eyes', 'power'] as const) result[key] = mix(from[key], to[key], t)
+  for (const key of ['headX', 'headY', 'headAngle', 'jaw', 'fin', 'arm', 'ribbon', 'breath', 'angle', 'eyes', 'power', 'sleep'] as const) result[key] = mix(from[key], to[key], t)
   return result
 }
 export class MegaAnimator {
@@ -107,6 +108,15 @@ function map(binding: Binding, pose: MegaPose): P {
   if (binding.fin) { const fin = rotate(p, finPivot, pose.fin); result.x += (fin.x - p.x) * binding.fin; result.y += (fin.y - p.y) * binding.fin }
   if (binding.arm) { const arm = rotate(p, { x: 60, y: 61 }, pose.arm); result.x += arm.x - p.x; result.y += arm.y - p.y }
   if (binding.ribbon) { result.x += Math.sin(pose.ribbon * 2.8 - p.y * .1) * 3 * binding.ribbon; result.y += Math.sin(pose.ribbon * 2.3 - p.x * .12) * 3 * binding.ribbon }
+  if (pose.sleep && binding.upperRibbon) {
+    // One continuous head-attached deformation for the entire upper tendril.
+    // Its old head/body boundary gave adjacent thin segments different transforms.
+    const tether = rotate(p, headPivot, pose.headAngle)
+    tether.x += pose.headX + Math.sin(pose.ribbon * 2.8 - p.y * .1) * .7
+    tether.y += pose.headY + Math.sin(pose.ribbon * 2.3 - p.x * .12) * .7
+    const attachment = pose.sleep * binding.upperRibbon
+    result = { x: mix(result.x, tether.x, attachment), y: mix(result.y, tether.y, attachment) }
+  }
   result = { x: 76 + (result.x - 76) * pose.breath, y: 87 + (result.y - 87) * pose.breath }
   result = rotate(result, { x: 64, y: 72 }, pose.angle)
   return { x: result.x + 32, y: result.y + 24 }
@@ -118,12 +128,18 @@ export function megaMouth(pose: MegaPose): P {
 // All bindings are computed once. Rasterization resamples the source by nearest neighbor.
 export class MegaTexture {
   private nodes: Binding[] = []
+  private foreground = new Uint8Array(128 * 128)
   constructor(private source: Uint8ClampedArray) {
     if (source.length !== 128 * 128 * 4) throw new Error('Mega Rayquaza requires a 128px RGBA frame')
     for (let y = 0; y <= 128; y += 2) for (let x = 0; x <= 128; x += 2) this.nodes.push(bind({ x, y }))
+    for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+      const point = { x: x + .5, y: y + .5 }
+      this.foreground[y * 128 + x] = distanceToPath(point, [ribbons[0]]) < 4 ? 2 : inside(point, HEAD) || inside(point, JAW) ? 1 : 0
+    }
   }
   render(pose: MegaPose): Uint8ClampedArray<ArrayBuffer> {
     const output = new Uint8ClampedArray(MEGA_SIZE * MEGA_SIZE * 4), mapped = this.nodes.map(node => map(node, pose))
+    const depth = pose.sleep > .001 ? new Uint8Array(MEGA_SIZE * MEGA_SIZE) : undefined
     const triangle = (ia: number, ib: number, ic: number) => {
       const a = mapped[ia], b = mapped[ib], c = mapped[ic], sa = this.nodes[ia].point, sb = this.nodes[ib].point, sc = this.nodes[ic].point
       const denominator = (b.y - c.y) * (a.x - c.x) + (c.x - b.x) * (a.y - c.y)
@@ -140,6 +156,12 @@ export class MegaTexture {
         const eyelid = pose.eyes > .7 && sx >= 35 && sx <= 40 && sy >= 60 && sy <= 62
         const sourceIndex = eyelid ? (58 * 128 + 37) * 4 : (sy * 128 + sx) * 4, destination = (y * MEGA_SIZE + x) * 4
         if (!this.source[sourceIndex + 3]) continue
+        if (depth) {
+          // Foreground head/jaw and upper tendril survive overlap with the coil.
+          const layer = this.foreground[sy * 128 + sx], pixel = destination / 4
+          if (depth[pixel] > layer) continue
+          depth[pixel] = layer
+        }
         output[destination] = this.source[sourceIndex]; output[destination + 1] = this.source[sourceIndex + 1]; output[destination + 2] = this.source[sourceIndex + 2]; output[destination + 3] = this.source[sourceIndex + 3]
       }
     }

@@ -1,13 +1,14 @@
 {
   "name": "pixel-pet-codex",
-  "displayName": "Pixel Pet for Codex",
-  "description": "An animated pixel companion for local Codex sessions in VS Code.",
+  "displayName": "Pixel Familiars",
+  "description": "Animated pixel companions, magical summons and legendary pets for your AI workspace.",
+  "author": "PhucUSk20",
   "publisher": "pixel-pet-local",
-  "version": "0.13.0",
+  "version": "0.13.1",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/Namenomeaning/pixel-pet.git"
+    "url": "https://github.com/PhucUSk20/pixel-familiars.git"
   },
   "engines": {
     "vscode": "^1.96.0"

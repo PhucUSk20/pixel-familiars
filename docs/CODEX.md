@@ -1,6 +1,8 @@
-# Pixel Pet for Codex 0.13.0
+# Pixel Familiars for Codex 0.13.1
 
-This local fork keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
+Maintained by [PhucUSk20](https://github.com/PhucUSk20) in [pixel-familiars](https://github.com/PhucUSk20/pixel-familiars). Existing `Pixel Pet:` command names remain available for compatibility. See [DEVELOPMENT.md](DEVELOPMENT.md) for repository ownership, attribution and the separate upstream contribution workflow.
+
+This independent project keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
 ## Use the installed version
 
@@ -36,7 +38,7 @@ The installer copies bundled hook/MCP code and assets into `<CODEX_HOME>/pixel-p
 
 Local VSIX packaging uses `tools/codex/package.mjs` with the MIT-licensed `fflate` ZIP library and an explicit list of runtime assets. The package command typechecks and builds first; it does not include dependencies, sign extensions or publish to the Marketplace. The Microsoft `vsce-sign` dependency is not required or installed. MCP registration must succeed before the installer commits the merged hook configuration.
 
-CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` selects Codex home. The extension setup locates bundled Codex automatically. This is a local fork on `codex-vscode`, with remote `upstream`; no GitHub account fork or Marketplace publication is implied.
+CLI setup: `npm.cmd run setup -- --codex <codex-path>`; optional `--home` selects Codex home. The extension setup locates bundled Codex automatically. Pixel Familiars develops on its own `main` branch at `PhucUSk20/pixel-familiars`, with the original repository retained as `upstream`. The separate `pixel-pet` fork and its existing contribution PR remain independent. This repository setup does not publish the extension to the Marketplace.
 
 ## Behavior and remaining differences
 
@@ -152,6 +154,8 @@ Version 0.13.0 uses the original first 128px frame as a textured mesh for the fi
 
 New actions blend for 1.2 seconds from the currently displayed pose, including an interrupted transition. Playback and mesh rasterization are capped at 20fps, and hidden or paused views stop advancement. Responsive scaling uses nearest-neighbor filtering. Original mode preserves all 160 GIF frames without mesh deformation. Only the exact solid background color was made transparent in the extracted atlas.
 
-The supplied GIFs, JSON and reduction script remain unchanged. The rejected generic rig remains inactive. Runtime animation uses mega-rayquaza.ts, legendary-webview.ts and legendary-128px-atlas.png. Recreate docs/images/legendary-source-actions.gif with `npm.cmd run record:legendary`; append `-- --original` to record the source loop (Chrome/Edge and ffmpeg required).
+Version 0.13.1 keeps the sleeping muzzle in front of the coil. The upper tendril follows one continuous head attachment, including transitions and breathing, so its curved arc stays connected. The other four action poses are unchanged.
+
+The supplied GIFs, JSON and reduction script remain unchanged. The rejected generic rig remains inactive. Runtime animation uses mega-rayquaza.ts, legendary-webview.ts and legendary-128px-atlas.png. Recreate docs/images/legendary-source-actions.gif with `npm.cmd run record:legendary`; append `-- --original` to record the source loop or `-- --action sleep` for an isolated sleep preview (Chrome/Edge and ffmpeg required).
 
 Appearance reference: [official Pokémon Mega Rayquaza artwork](https://www.pokemon.co.jp/ex/usum/common/images/legacy/171102_03/poke_03.jpg), from the [Ultra Sun / Ultra Moon website](https://www.pokemon.co.jp/ex/usum/legacy/171102_03.html). Preserve the elongated pointed head, long paired horns, broad fins, green serpentine body with a black underside, gold/orange markings and long flowing tendrils. Use the user's 128px sprite as the pixel-art reference. Original artwork is used for visual comparison only, not bundled in the extension.

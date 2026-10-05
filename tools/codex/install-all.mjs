@@ -37,7 +37,7 @@ try {
     if (!codex) throw new Error('Install the Codex extension in VS Code first; its bundled CLI could not be found.')
   }
   run(codex, ['--version'])
-  console.log('\nInstalling Pixel Pet for Codex…')
+  console.log('\nInstalling Pixel Familiars…')
   cli('npm', ['ci'])
   cli('npm', ['run', 'package'])
   cli('code', ['--install-extension', './dist/pixel-pet-codex.vsix', '--force'])

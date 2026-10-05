@@ -48,3 +48,25 @@ test('rapid selections transition from the current blended pose; automatic and m
   for (const action of MEGA_ACTIONS) { assert.equal(animator.action, action); animator.advance(MEGA_DURATION[action], true); assert.ok(animator.transitioning) }
   animator.select('dash'); animator.advance(MEGA_DURATION.dash, false); assert.equal(animator.action, 'dash'); assert.ok(animator.transitioning)
 })
+
+test('sleeping head stays in front of overlapping body texture', () => {
+  const source = new Uint8ClampedArray(128 * 128 * 4)
+  for (let y = 0; y < 128; y++) for (let x = 0; x < 128; x++) {
+    const i = (y * 128 + x) * 4
+    source[i] = x; source[i + 1] = y; source[i + 2] = 80; source[i + 3] = 255
+  }
+  const texture = new MegaTexture(source)
+  const pose = { ...megaPose('original', 0), sleep: 1, headX: 35, headY: 45 }
+  const output = texture.render(pose)
+  // The shifted head/jaw overlaps the coil here. Source coordinates encoded
+  // as colors distinguish visible head pixels from the later body triangles.
+  const pixel = (129 * MEGA_SIZE + 97) * 4
+  assert.ok(output[pixel] < 45 && output[pixel + 1] < 80, 'head/jaw must be the visible foreground')
+  const withoutSleepLayers = texture.render({ ...pose, sleep: 0 })
+  assert.ok(withoutSleepLayers[pixel] >= 60 && withoutSleepLayers[pixel + 1] >= 100, 'fixture must actually overlap a body triangle')
+  for (let ms = 0; ms < MEGA_DURATION.sleep; ms += 500) {
+    const resting = megaPose('sleep', ms)
+    assert.ok(resting.headX < 10 && resting.headY < 12, 'muzzle must rest beside the coil, not inside it')
+    assert.equal(resting.sleep, 1)
+  }
+})

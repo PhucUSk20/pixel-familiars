@@ -1,6 +1,6 @@
-# Pixel Pet for Codex
+# Pixel Familiars
 
-This local fork adds a VS Code companion to the upstream Claude mod. Preserve the MIT license and attribution. Original plugin: `plugins/pixel-pet`. Codex adapter: `extensions/codex`.
+This independent repository is owned and maintained by PhucUSk20. Its origin is https://github.com/PhucUSk20/pixel-familiars.git; upstream is https://github.com/Namenomeaning/pixel-pet.git. The sibling pixel-pet directory and its existing PR are a separate contribution workflow: do not modify them as part of work here. Preserve inherited Git authorship, the MIT license and attribution. See docs/DEVELOPMENT.md. Original plugin: `plugins/pixel-pet`. Codex adapter: `extensions/codex`.
 
 - `protocol.ts` translates untrusted Codex JSONL records into activity and usage. Retain no prompts, reasoning, conversation or tool output.
 - `sessions.ts` discovers workspace-scoped sessions and tails the selected file. JSONL is an implementation detail, not a public OpenAI extension API.

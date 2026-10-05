@@ -14,7 +14,9 @@ export const files = [
   ['docs/images/legendary-original.gif', 'docs/images/legendary-original.gif'],
   ['docs/images/legendary-source-actions.gif', 'docs/images/legendary-source-actions.gif'],
   ['media/pet.svg', 'media/pet.svg'], ['docs/CODEX.md', 'docs/CODEX.md'],
-  ...['slime', 'pets', 'demo', 'codex-pet-life', 'codex-pet-actions'].map(name => [`docs/images/${name}.gif`, `docs/images/${name}.gif`]),
+  ['docs/DEVELOPMENT.md', 'docs/DEVELOPMENT.md'],
+  ['docs/CLAUDE.md', 'docs/CLAUDE.md'], ['CLAUDE.md', 'CLAUDE.md'],
+  ...['slime', 'pets', 'demo', 'codex-pet-life', 'codex-pet-actions', 'codex-pet-summoning'].map(name => [`docs/images/${name}.gif`, `docs/images/${name}.gif`]),
   ...['slime', 'duck', 'alien'].map(name => [`plugins/pixel-pet/assets/${name}.json`, `plugins/pixel-pet/assets/${name}.json`]),
   ['plugins/pixel-pet/skills/pixel-pet/FORMAT.md', 'plugins/pixel-pet/skills/pixel-pet/FORMAT.md'],
 ]
