@@ -12,6 +12,10 @@ import { execFileSync } from 'node:child_process'
 import { Client } from '@modelcontextprotocol/sdk/client/index.js'
 import { StdioClientTransport } from '@modelcontextprotocol/sdk/client/stdio.js'
 import { build } from 'esbuild'
+import { checkArena } from './arena-smoke.mjs'
+import { checkKyogre } from './kyogre-smoke.mjs'
+import { checkDeoxys } from './deoxys-smoke.mjs'
+import { checkGroudon } from './groudon-smoke.mjs'
 
 const root = resolve('.')
 // Fresh clones do not contain the ignored upstream preview artifact.
@@ -66,7 +70,7 @@ const state = new Map()
 const workspaceState = new Map()
 const options = { codexHome: directory }
 let pickLabel
-let provider, legendaryProvider, receive, html = '', legendaryMarkup = '', page
+let deoxysProvider, deoxysMarkup, provider, legendaryProvider, kyogreProvider, kyogreMarkup, groudonProvider, arenaProvider, arenaMarkup = '', receive, html = '', legendaryMarkup = '', groudonMarkup = '', page
 const disposable = () => ({ dispose() {} })
 const vscode = {
   extensions: { getExtension: () => undefined },
@@ -90,7 +94,7 @@ const vscode = {
     createTerminal: () => ({ show() {}, sendText: command => terminalCommands.push(command) }),
     showInformationMessage: async () => undefined,
     createOutputChannel: () => ({ appendLine: console.log, dispose() {} }),
-    registerWebviewViewProvider: (id, value) => { if (id === 'pixelPet.companion') provider = value; if (id === 'pixelPet.legendary') legendaryProvider = value; return disposable() },
+    registerWebviewViewProvider: (id, value) => { if (id === 'pixelPet.companion') provider = value; if (id === 'pixelPet.legendary') legendaryProvider = value; if (id === 'pixelPet.deoxys') deoxysProvider = value; if (id === 'pixelPet.kyogre') kyogreProvider = value; if (id === 'pixelPet.groudon') groudonProvider = value; if (id === 'pixelPet.arena') arenaProvider = value; return disposable() },
     showQuickPick: async items => pickLabel ? items.find(item => item.label === pickLabel) : items[0], showErrorMessage: async message => { throw new Error(message) },
   },
   ConfigurationTarget: { Workspace: 2 },
@@ -102,21 +106,42 @@ const require = createRequire(import.meta.url)
 runInNewContext(await readFile('dist/extension.cjs', 'utf8'), { module: host, exports: host.exports, require: name => name === 'vscode' ? vscode : require(name), process, Buffer, console, setInterval, clearInterval, setTimeout, clearTimeout })
 host.exports.activate(context)
 const server = createServer(async (request, response) => {
-  if (request.url === '/gallery.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(gallery.outputFiles[0].text) }
+  if (/^\/deoxys-(normal|attack|defense|speed)\.png$/.test(request.url)) { response.setHeader('Content-Type','image/png'); response.end(await readFile(`extensions/codex/${request.url.slice(1).replace('.png','-128px-atlas.png')}`)) }
+  else if(request.url === '/deoxys.js') {response.setHeader('Content-Type','text/javascript');response.end(await readFile('dist/deoxys.js'))}
+  else if(request.url === '/deoxys') {response.setHeader('Content-Type','text/html');response.end(deoxysMarkup)}
+  else if (request.url === '/arena') { response.setHeader('Content-Type', 'text/html'); response.end(arenaMarkup) }
+  else if (request.url === '/arena.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/arena.js')) }
+  else if (request.url === '/gallery.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(gallery.outputFiles[0].text) }
   else if (request.url === '/gallery') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><style>body{background:#14171f;color:#ddd;display:grid;grid-template-columns:repeat(4,288px);gap:12px;font:16px monospace}p{text-align:center}canvas{background:#191c24}</style><script type="module" src="/gallery.js"></script>') }
   else if (request.url === '/webview.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/webview.js')) }
   else if (request.url === '/legendary.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/legendary.js')) }
   else if (request.url === '/legendary.png') { response.setHeader('Content-Type', 'image/png'); response.end(await readFile('extensions/codex/legendary-128px-atlas.png')) }
   else if (request.url === '/legendary') { response.setHeader('Content-Type', 'text/html'); response.end(legendaryMarkup) }
+  else if (request.url === '/kyogre.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/kyogre.js')) }
+  else if (request.url === '/kyogre.png') { response.setHeader('Content-Type', 'image/png'); response.end(await readFile('extensions/codex/kyogre-primal-128px-atlas.png')) }
+  else if (request.url === '/kyogre') { response.setHeader('Content-Type', 'text/html'); response.end(kyogreMarkup) }
+  else if (request.url === '/groudon.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/groudon.js')) }
+  else if (request.url === '/groudon.png') { response.setHeader('Content-Type', 'image/png'); response.end(await readFile('extensions/codex/groudon-primal-128px-atlas.png')) }
+  else if (request.url === '/groudon-source.gif') { response.setHeader('Content-Type', 'image/gif'); response.end(await readFile('extensions/codex/groudon-primal-128px.gif')) }
+  else if (request.url === '/groudon') { response.setHeader('Content-Type', 'text/html'); response.end(groudonMarkup) }
   else { response.setHeader('Content-Type', 'text/html'); response.end(html) }
 })
 await new Promise(done => server.listen(0, '127.0.0.1', done))
 const url = `http://127.0.0.1:${server.address().port}`
+arenaProvider.resolveWebviewView({ webview: { cspSource: url, set options(value) {}, set html(value) { arenaMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.js') ? 'arena.js' : uri.fsPath.includes('deoxys-') ? uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png') : uri.fsPath.includes('groudon') ? 'groudon.png' : uri.fsPath.includes('kyogre') ? 'kyogre.png' : 'legendary.png'}` } })
 legendaryProvider.resolveWebviewView({ webview: {
   cspSource: url,
   set options(value) {},
   set html(value) { legendaryMarkup = value },
   asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.png') ? 'legendary.png' : 'legendary.js'}`,
+} })
+deoxysProvider.resolveWebviewView({ webview: { cspSource:url, set options(value){}, set html(value){deoxysMarkup=value}, asWebviewUri:uri=>`${url}/${uri.fsPath.endsWith('.png')?uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png'):'deoxys.js'}` } })
+kyogreProvider.resolveWebviewView({ webview: { cspSource: url, set options(value) {}, set html(value) { kyogreMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.png') ? 'kyogre.png' : 'kyogre.js'}` } })
+groudonProvider.resolveWebviewView({ webview: {
+  cspSource: url,
+  set options(value) {},
+  set html(value) { groudonMarkup = value },
+  asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.png') ? 'groudon.png' : 'groudon.js'}`,
 } })
 provider.resolveWebviewView({ visible: true, onDidDispose: disposable, webview: {
   set html(value) { html = value },
@@ -132,6 +157,10 @@ try {
   assert.ok(terminalCommands[0].includes(root), 'hook review must open the workspace')
   const executablePath = process.env.PIXEL_PET_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)
   browser = await chromium.launch({ executablePath, headless: true })
+  await checkArena(browser, url)
+  await checkKyogre(browser,url)
+  await checkDeoxys(browser,url)
+  await checkGroudon(browser, url)
   const legendaryPage = await browser.newPage({ viewport: { width: 700, height: 320 } })
   const legendaryErrors = []
   legendaryPage.on('pageerror', error => legendaryErrors.push(String(error)))
@@ -442,6 +471,15 @@ try {
   hook('UserPromptSubmit')
   hook('PreCompact')
   await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').endsWith(', compacting'))
+  // The status/HUD reflow follows the first compacting paint. Sample only after
+  // two stable layout frames, so responsive scaling is not mistaken for movement.
+  await page.waitForFunction(() => {
+    const c = document.querySelector('#stage')
+    const signature = `${c.width}:${c.height}:${c.dataset.mainX}`
+    const stable = window.compactLayoutProbe === signature
+    window.compactLayoutProbe = signature
+    return stable
+  }, undefined, { polling: 200 })
   await page.screenshot({ path: 'dist/codex-compacting.png' })
   const bathPosition = () => page.locator('#stage').evaluate(canvas => {
     const data = canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height).data

@@ -27,7 +27,7 @@ Both integrations use the shared pixel engine and theme format. Each connects to
 | Customization | MCP theme tools, preview and import | Plugin skill, preview and theme tools |
 | Task companions | Portal workers, subagent minis and automatic project Mini | Subagent minis following the main pet |
 | Idle play | Independent roaming and 20 pet interactions | Breathing, looking around and sleep |
-| Legendary Pet | Independent panel with five Mega Rayquaza actions | Available through the Codex VS Code companion |
+| Legendary Pets | Mega Rayquaza, Primal Groudon, Primal Kyogre, Deoxys and shared Arena | Available through the Codex VS Code companion |
 | Detailed guide | [Codex guide](docs/CODEX.md) | [Claude Code guide](docs/CLAUDE.md) |
 
 Observation and animation run locally and add **no AI calls or tokens**. Asking an AI to redesign a theme uses its normal chat/tool workflow.
@@ -116,6 +116,12 @@ In VS Code, run **Pixel Pet: Open Legendary Pet** for an independent panel. Mega
 
 Its animation runs locally, shares no AI session and makes no model requests.
 
+Run **Pixel Pet: Open Primal Groudon** for a separate volcanic pixel stage. Its six actions are **heavy walking, sleep, roar, Precipice Blades, Energy Burst and Eruption**. Arms, legs, head, jaw and tail follow their own motion, with smooth interrupted transitions. Precipice Blades raises molten rock blades from the ground; Energy Burst charges a purple orb at the mouth before launching it with recoil; Eruption launches fireballs diagonally from the mouth before they fall as a meteor shower.
+
+<p align="center"><img src="docs/images/groudon-actions.gif" width="700" alt="Primal Groudon: six source-textured motions, molten rock blades, purple energy burst and eruption"></p>
+
+The supplied 128px artwork and all 160 original frames are preserved. **Hình gốc**, Auto and Pause are available. The purple attack uses a descriptive name from the reference GIF rather than assuming its canonical move name. All Groudon animation is local and adds no AI calls or tokens. [Groudon design and controls](docs/PRIMAL-GROUDON.md).
+
 ## Develop
 
 - **Shared engine and Claude adapter:** `plugins/pixel-pet/`.
@@ -143,6 +149,36 @@ The **Claude plugin** runs inside Claude Code, reads its theme/session usage/sub
 
 See each integration's guide for details. Report vulnerabilities through a [private security advisory](https://github.com/PhucUSk20/pixel-familiars/security/advisories/new).
 
+## Primal Kyogre
+
+Run **Pixel Familiars: Open Primal Kyogre** for seven source-textured actions: swimming, diving, resting, roaring, five-orb rays, a curled wave and a rainstorm. Fins, tail, head and jaw articulate independently with smooth transitions. **Sprite gốc** preserves the 160-frame source loop; Auto and Pause are available. Kyogre also lives in the sea of Legendary Arena and automatically spars with Groudon, alternating with Rayquaza. Everything runs locally with no AI calls or tokens. [Design and controls](docs/PRIMAL-KYOGRE.md).
+
+![Primal Kyogre: seven articulated motions and water effects](docs/images/kyogre-actions.gif)
+
+## Rayquaza vs Deoxys
+
+Arena's **Đấu chiêu · Rayquaza vs Deoxys** mode stages a local aerial match: Dragon Pulse meets Defense's reflective barrier, Attack launches Psycho Boost while Rayquaza dives aside, Speed zigzags through an aerial chase, and Normal's psychic pulse clashes with Rayquaza's beam. Kyogre and Groudon simultaneously cycle five turns of five horizontal water jets, energy burst, rock blades, meteor rain and a water/fire beam clash below, with an independent timer that continues during aerial transformations. Both aerial pets fly into position; Deoxys changes forms through falling-meteorite contact between rounds. Pause, Rest and Auto can interrupt the choreography.
+
+![Rayquaza vs Deoxys: four aerial rounds](docs/images/legendary-duel.gif)
+
+## Deoxys · four forms and a meteorite
+
+Deoxys flies freely; a meteorite falls nearby, then Deoxys descends, touches it and transforms into randomly ordered Attack, Defense and Speed forms. Each has its own articulated skill animation; all four can be viewed in the Deoxys panel and Deoxys also lives in Legendary Arena. Runs locally without AI token usage.
+
+![Meteorite descent, contact and transformation](docs/images/deoxys-meteor.gif)
+
+![Deoxys transformations and skills](docs/images/deoxys-actions.gif)
+
+Open **Pixel Familiars: Open Deoxys**. [Controls and animation details](docs/DEOXYS.md).
+
 ## License and attribution
 
 [MIT](LICENSE). Pixel Familiars is maintained by **[PhucUSk20](https://github.com/PhucUSk20)**. Original Pixel Pet by **halluqinate**, from [Namenomeaning/pixel-pet](https://github.com/Namenomeaning/pixel-pet). Original copyright notices and commit authorship are preserved.
+
+### Shared Legendary Arena
+
+Version 0.16.1 expands the arena to the panel width without enlarging the pets or stretching the volcano. Groudon walks only on the basalt land; Rayquaza can fly across the sky and change altitude. Resizing keeps both pets inside their movement bounds.
+
+Open **Pixel Familiars: Open Legendary Arena** after reloading VS Code. **Tự do · Auto** is the default: each pet roams and chooses activities independently, occasionally meets the other for a short sparring session, then returns to roaming. No tasks or clicks are required. **Đấu chiêu** keeps them sparring; **Cùng nghỉ** lets all four rest. Sparring cycles Dragon Pulse, Energy Burst, Precipice Blades and Eruption with charging, projectiles, shields and recovery. The arena has a black starry sky, a rippling ocean on the left, a flat basalt coast and an erupting volcano behind Groudon. All four pets retain their articulated source sprites. Kyogre swims only within the sea and alternates sparring turns with Rayquaza. Pause freezes pets and scenery. Everything runs locally with no AI requests or tokens; individual pet panels remain available.
+
+![Autonomous Rayquaza, Groudon and Kyogre life and occasional sparring](docs/images/legendary-arena.gif)

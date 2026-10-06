@@ -1,3 +1,108 @@
+## Magma blades and twin waterspouts 0.19.7 — 2026-10-06
+
+- Groudon sends a glowing ground fracture towards Kyogre. Six successive jagged magma columns grow taller along the path, erupt beneath Kyogre and throw fragments, spray and steam. Kyogre recoils on contact. The standalone panel uses the same blade renderer.
+- Kyogre raises two independently spiraling waterspouts, draws them together, and launches a fused rotating water drill into Groudon's articulated armor position. Contact creates a broad splash, steam, armor flash and recoil. The standalone panel shares the choreography.
+- Regression covers column advance and target reach, separate funnels, convergence before launch, both facing directions, target-centered contact and absence of premature impact effects.
+- `npm ci`, typecheck, build, all 104 sequential tests, the full Chromium UI suite and standalone recording checks pass. Re-recorded both Arena GIFs and both individual pet GIFs. Packaged and installed extension 0.19.7.
+
+## Kyogre storm targets Groudon 0.19.6 — 2026-10-06
+
+- Kyogre extends its cloud bank and rainfall across both pets; jagged lightning descends from directly above Groudon's articulated armor rather than striking near Kyogre. Contact adds sparks, a localized glow and recoil, synchronized with the same lightning clock.
+- Shared storm rendering accepts an explicit target for Arena while the individual preview keeps its demonstration target. No new AI/host calls or timers are added.
+- `npm ci`, typecheck, build, all 102 sequential tests and the complete Chromium UI suite pass. Targeted effect tests also pass after refining the continuous stepped lightning path.
+- Regression verifies cloud/rain coverage of both pets, overhead bolt origin, armor endpoint and intervals without lightning. Arena captures the strike and asserts the hit reaction at its actual time.
+- Re-recorded the duel, autonomous Arena and standalone Kyogre GIFs with the overhead storm. Packaged and installed extension 0.19.6; the complete UI suite and all 102 tests pass.
+
+## Diagonal meteor rain and five water impacts 0.19.5 — 2026-10-06
+
+- Fireballs leave the articulated mouth diagonally toward the opponent, cross above view, and descend diagonally into the target area. Trails follow both ascent and descent directions in Arena and the standalone Groudon panel.
+- Five circular water emitters remain separate. Jets terminate at Groudon's armor; each impact produces water fragments, a pulsing splash and rising steam. Groudon recoils and shakes only after the jets arrive; effects stop during recovery.
+- `npm ci`, typecheck, build, all 101 sequential tests and the complete Chromium UI suite pass.
+- Re-recorded the standalone Groudon GIF and both Arena GIFs; final Chromium Arena checks pass after placing water contact on the armor.
+- Regression coverage verifies ascent/descent direction, target landing, all five water lanes, impact timing, spray/steam and jet termination. Arena captures the actual impact and tests the recoil phase.
+
+## Five circular Kyogre emitters 0.19.4 — 2026-10-06
+
+- The five charging orbs retain their original circular perspective arrangement. At release the orbit stops at its existing phase; each jet originates at that exact orb position, with its own sheath, core and leading pulse. The orbs never transition into five rows.
+- Updated the regression to require five distinct jets, original emitter positions on the ring, frozen release coordinates and both facing directions. The separate water/fire clash keeps its collision choreography.
+- `npm ci`, typecheck, build, all 100 sequential tests and the complete Chromium UI suite pass. Production Arena frames visually confirm the circular emitter positions and five separate jets.
+- Re-recorded the individual Kyogre GIF and both Arena GIFs with the corrected circular emitters.
+- The Pinterest page could not be retrieved; implementation follows the user's attached image and explicit clarification that the five jets must launch from the existing circular orb positions.
+
+
+## Water cannon, meteor shower and ground beam clash 0.19.3 — 2026-10-06
+
+- Water cannon release now forms a continuous horizontal column from Kyogre's articulated mouth in Arena and the individual preview. The released stream no longer changes altitude or begins as a detached tail near the target.
+- Groudon's Eruption launches eight staggered fireballs vertically from its articulated mouth. They travel above view then descend over the Kyogre area with hot cores, vertical trails and impact rings. The standalone volcanic panel uses the same meteor choreography.
+- Added a fifth ground-pair turn: water and fire beams charge at both mouths, grow toward a common collision core, pulse and disperse in a shockwave. Manual ground sparring retains its independent clock alongside the aerial duel; autonomous Kyogre/Groudon rounds can also include this turn.
+- Three regression tests cover horizontal release in both facing directions, mouth-origin ascent/target-area descent for all eight meteors, and beam endpoints/collision geometry. Updated controller and Chromium Arena checks exercise all five ground turns and capture the corrected effects.
+- `npm ci`, typecheck, build, all 100 sequential tests and the complete Chromium UI suite pass.
+- Re-recorded both production Arena GIFs (Duel and Auto) and individual Groudon/Kyogre GIFs. Final Arena Chromium checks also pass against the rebuilt runtime. No source sprites, AI calls or observer permissions were changed.
+
+## Deoxys anatomy and ballistic aiming 0.19.2 — 2026-10-06
+
+- Transformation now uses relaxed neutral joints, an unsquashed torso and the original source silhouette under the flash. Form changes discard the previous anatomy's joint pose. Skin weights protect the chest, normalize overlaps and taper shoulder/hip attachment; tentacle rotation is bounded to prevent mesh folding and stretching.
+- A shared local ballistic shot locks actual origin and target at release. Manual Attack and autonomous Normal/Attack shots aim at Rayquaza's articulated head, rather than a fixed altitude or panel edge. Tails and overshoot follow the same two-dimensional direction, allowing subsequent dodges.
+- Two regression tests cover stable transformation anatomy and target locking/overshoot/reset. `npm ci`, typecheck, build and all 97 sequential tests pass.
+- The complete Chromium UI suite passes, including companion, hook/MCP, fallback/privacy and all individual legendary panels.
+- Chromium source silhouette checks cover all four forms in idle, charge, release and transformation poses. Arena checks verify manual launch aim, a moving Rayquaza after launch, autonomous aiming, simultaneous ground battles, pause/rest and responsive layouts.
+- Re-recorded the production duel GIF after the anatomy and aim corrections. Original source GIFs remain unchanged; no AI calls or host messages were introduced.
+
+## Simultaneous legendary duels 0.19.1 — 2026-10-06
+
+- Manual Duel now runs Rayquaza/Deoxys in the sky and Kyogre/Groudon below at the same time. The ground pair travels into its sea/land positions, faces its opponent and cycles four attack turns on an independent clock, including aerial meteorite interludes.
+- Ground sprites and water/energy/blade/eruption effects reuse the existing production animations. Pause, Rest, Auto and responsive resize affect both pairs; no AI calls or host messages are introduced.
+- `npm ci`, typecheck, build, all 95 sequential tests and the complete Chromium UI suite pass.
+- Controller and Chromium Arena checks verify simultaneous non-sleeping actions, all four independent ground turns, the four aerial rounds, cancellation, pause and responsive layouts. Re-recorded the production duel GIF with all four pets fighting.
+
+## Rayquaza vs Deoxys 0.19.0 — 2026-10-06
+
+- Manual Duel now pairs Rayquaza with Deoxys, with smooth travel into an aerial lane. Groudon and Kyogre rest as spectators; autonomous play remains available.
+- Four rounds cover Defense interception/reflection, Attack projectile and Rayquaza dodge, Speed pursuit, and opposing energy streams. Form changes still require a descending meteorite, landing, approach and physical contact before transformation.
+- Added two deterministic controller tests covering all four rounds, contact-before-transformation, movement, spectators, resize and cancellation. `npm ci`, typecheck, build and all 95 tests pass sequentially.
+- Targeted Chromium Arena checks pass for the four rounds, transformations, independent auto movement, pause, rest, narrow/wide resize and zero host/model messages.
+- The full Chromium UI suite passes, including companion interactions, hooks/MCP subprocesses, fallback/privacy, compaction and all individual legendary panels.
+- Recorded the complete 85-second production choreography in `docs/images/legendary-duel.gif`; the autonomous Arena GIF is retained separately. Reference artwork is not packaged.
+
+## Deoxys 0.18.0 — 2026-10-06
+
+- Preserved all four supplied source GIFs. Chromium compares all 640 atlas frames against independently decoded originals over their exact background.
+- Added source-textured limb articulation, distinct Normal/Attack/Defense/Speed skills, continuous pose blending, altitude-changing flight and a meteorite that falls beside the current pet before approach/contact. Randomized variants switch only at the transformation midpoint; meteorite fades afterward.
+- Autonomous cycles, form-specific skills, landing-before-contact, movement bounds after resize, rest cancellation and malformed time deltas are covered by six new tests. All 93 tests pass when run sequentially; the existing Windows nested-shell test can exceed its 10-second deadline under parallel load.
+- Dedicated Deoxys Chromium checks pass: all four autonomous skills, descending meteorite, pause equality, rest, original playback, narrow/wide panels and zero host/model messages.
+- Deoxys is registered in its own panel and in Legendary Arena. Production recordings: docs/images/deoxys-actions.gif, the short docs/images/deoxys-meteor.gif and the updated four-pet docs/images/legendary-arena.gif. Reference limitations and controls are documented in DEOXYS.md.
+- The complete companion/legendary UI suite passes, including hook/MCP subprocesses, fallback, privacy, idle interactions and compaction. The new Arena flight lane also passes the targeted Arena checks.
+- The companion compaction smoke check now waits for two stable responsive layout frames before comparing bath position. It retains the original pixel-position assertion.
+
+## Primal Kyogre 0.17.0
+
+- Preserved the supplied 128px GIF; generated an atlas verified against all 160 original frames in Chromium.
+- Added seven source-textured articulated actions, interrupted-pose blending, water orbs/rays, wave foam, dive bubbles and storm rain/lightning. Original playback, auto, pause, hidden-time freeze and narrow/wide layouts are verified.
+- Arena includes all three rigs. Kyogre stays within ocean bounds, chooses independent activities and alternates with Rayquaza as Groudon's sparring partner; rest covers all three. Long seeded simulations include ocean-bound movement across resizes and finite automatic battles.
+- `npm ci`, all 87 tests, typecheck and build passed. Browser checks passed for Kyogre, arena, Groudon and Rayquaza; renderer sends no host/model requests.
+- Recorded `docs/images/kyogre-actions.gif` and updated `docs/images/legendary-arena.gif` using the actual production renderers. Visual references and detailed controls are in PRIMAL-KYOGRE.md.
+
+## Autonomous coastal arena 0.16.0
+
+- Added independent local destinations and activity schedules, travel before battles, finite automatic sparring and return to roaming. Manual modes retain smooth action transitions; idle/sleep motion continues looping.
+- Five-minute seeded simulation verifies bounded movement, activity variety, multiple automatic battles and return without input. Rest/mode switching tests verify no teleport and no movement while resting.
+- All 82 tests passed. Arena Chromium checks cover independent movement, automatic battle/return, all manual attacks, pause equality, responsive layout and zero host/model messages.
+- Replaced rounded tiled ground with a flat basalt shelf and angular lava cracks. Added ocean waves, reflection, shoreline foam and steam on the left.
+
+## Volcanic arena 0.15.1
+
+Replaced the blue backdrop and flat floor with an opaque black star field, layered basalt ridges, glowing fissures, flowing crater lava, ballistic cinders, stepped smoke and rising embers. Scenery uses integer pixel rendering and local animation time; pause freezes both pets and scenery. Chromium checked opaque black canvas corners, exact paused-frame equality, shared actions and narrow/wide layout. `npm ci`, all 80 tests, typecheck and build passed. The arena GIF is recorded from the actual bundled renderer.
+
+Visual references: [Steam volcanic landscape](https://steamcommunity.com/sharedfiles/filedetails/?id=900902359), [Groudon lava GIF](https://media2.giphy.com/media/PxMLQ3ro9Tcmdqv0Wv/giphy.gif), [Primal encounter](https://www.tumblr.com/toasty-coconut/96592695985/encounter-with-primal-groudon-and-kyogre). Reference downloads stay in ignored dist; artwork is procedural and references are not shipped.
+
+## Legendary Arena 0.15.0
+
+- Typecheck, build and all 80 tests passed; VSIX packaging test includes arena runtime and GIF.
+- Full Chromium UI suite passed for the arena, both individual legendary panels and the existing companion/hooks/MCP workflows.
+- Final arena recording reran the UI checks after visual refinements: both source rigs, four attack turns, projectiles/shields, shared rest, pause, narrow/wide resize, no host/model messages.
+- Recorded `docs/images/legendary-arena.gif` from the production renderer with deterministic local time. No AI calls.
+- Linux installer work was cancelled at the user's request; no installer changes were made for this task.
+
 # Verification — 2026-10-03
 
 Upstream base: `02eb10a`, branch `codex-vscode`. Local VS Code Codex version: `26.5928.31416`. Node: `24.11.1`.
@@ -154,6 +259,13 @@ The actual VS Code extension-host UI was not automated. After reloading the wind
 - Native trust remains unchanged. Hook subprocesses in the test harness establish adapter behavior, not execution by an actual trusted Codex session. Log fallback remains limited for nested timing, subagent completion and compaction events.
 
 The preserved Claude plugin passes both strict validators with the VS Code bundled Claude `2.1.288`. Its existing suite has 74 passing and 1 failing test on Windows: `preview_theme writes the preview and leaves the pet on screen alone`, expecting the mock key `file:/tmp/mochi.html` but receiving `undefined`. The mod adapter/hooks were not edited. The generated HTML preview builds and executes successfully in Chrome. The standalone older `claude` executable does not accept `--strict`; use the bundled matching runtime for these checks. The original Claude-only TypeScript project requires its runtime-generated type package and was not used for the Codex build.
+
+## Primal Groudon 0.14.0 - 2026-10-05
+
+- Independent Primal Groudon view and command added without changing Mega Rayquaza or the regular pet engine. Uses the supplied native 128px sprite with head/jaw, opposing arms/legs and tail articulation, six motions and 1.1-second interrupted transitions.
+- Precipice Blades uses windup/slam, sequential faceted molten rock emergence and debris. Energy Burst follows the purple mouth-charge reference, with a dense luminous orb, mouth-bound release and recoil. Eruption uses staggered molten projectiles along arcs. All animation is local, with no host/model requests.
+- npm ci, typecheck, all 80 tests, build and packaging passed. Full companion/Mega Rayquaza/Groudon Chromium regression passed; final Groudon rendering was checked again after visual refinements. Atlas fidelity matches all 160 original GIF frames; browser checks cover six actions, attack states, original playback, pause, transition freeze and responsive layout.
+- Recorded docs/images/groudon-actions.gif with the production renderer, updated README/design guide, packaged assets and installed local extension 0.14.0. The source GIF remains untouched. External reference downloads are ignored and are not packaged.
 
 ## Pixel Familiars independent repository - 2026-10-05
 

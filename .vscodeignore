@@ -4,6 +4,7 @@
 !LICENSE
 !dist/extension.cjs
 !dist/webview.js
+!dist/groudon.js
 !dist/hook.cjs
 !dist/mcp.mjs
 !media/**
@@ -11,5 +12,18 @@
 !docs/CODEX.md
 !docs/DEVELOPMENT.md
 !docs/CLAUDE.md
+!docs/PRIMAL-GROUDON.md
 !CLAUDE.md
 !plugins/pixel-pet/skills/pixel-pet/FORMAT.md
+
+!dist/arena.js
+
+!dist/kyogre.js
+!docs/PRIMAL-KYOGRE.md
+
+!dist/deoxys.js
+!extensions/codex/deoxys-*-128px-atlas.png
+!docs/DEOXYS.md
+!docs/images/deoxys-actions.gif
+!docs/images/deoxys-meteor.gif
+!docs/images/legendary-duel.gif

@@ -6,8 +6,16 @@ import { randomUUID } from 'node:crypto'
 import { zipSync, strToU8 } from 'fflate'
 
 export const files = [
+  ['docs/images/legendary-duel.gif','docs/images/legendary-duel.gif'],
+  ...['normal','attack','defense','speed'].map(form=>[`extensions/codex/deoxys-${form}-128px-atlas.png`,`extensions/codex/deoxys-${form}-128px-atlas.png`]),
+  ['docs/images/deoxys-meteor.gif','docs/images/deoxys-meteor.gif'], ['docs/DEOXYS.md','docs/DEOXYS.md'], ['docs/images/deoxys-actions.gif','docs/images/deoxys-actions.gif'],
   ['package.json', 'package.json'], ['README.md', 'readme.md'], ['LICENSE', 'LICENSE.txt'],
-  ...['extension.cjs', 'webview.js', 'legendary.js', 'hook.cjs', 'mcp.mjs'].map(name => [`dist/${name}`, `dist/${name}`]),
+  ...['extension.cjs', 'webview.js', 'legendary.js', 'groudon.js', 'arena.js', 'kyogre.js', 'deoxys.js', 'hook.cjs', 'mcp.mjs'].map(name => [`dist/${name}`, `dist/${name}`]),
+  ['extensions/codex/groudon-primal-128px-atlas.png', 'extensions/codex/groudon-primal-128px-atlas.png'],
+  ['extensions/codex/kyogre-primal-128px-atlas.png', 'extensions/codex/kyogre-primal-128px-atlas.png'],
+  ['docs/images/kyogre-actions.gif', 'docs/images/kyogre-actions.gif'], ['docs/PRIMAL-KYOGRE.md', 'docs/PRIMAL-KYOGRE.md'],
+  ['docs/images/legendary-arena.gif', 'docs/images/legendary-arena.gif'],
+  ['docs/images/groudon-actions.gif', 'docs/images/groudon-actions.gif'], ['docs/PRIMAL-GROUDON.md', 'docs/PRIMAL-GROUDON.md'],
   ['extensions/codex/legendary-64px-atlas.png', 'extensions/codex/legendary-64px-atlas.png'],
   ['extensions/codex/legendary-64px.json', 'extensions/codex/legendary-64px.json'],
   ['extensions/codex/legendary-128px-atlas.png', 'extensions/codex/legendary-128px-atlas.png'],

@@ -4,7 +4,7 @@
   "description": "Animated pixel companions, magical summons and legendary pets for your AI workspace.",
   "author": "PhucUSk20",
   "publisher": "pixel-pet-local",
-  "version": "0.13.1",
+  "version": "0.19.7",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -31,6 +31,22 @@
   },
   "contributes": {
     "commands": [
+      {
+        "command": "pixelPet.openDeoxys",
+        "title": "Pixel Familiars: Open Deoxys"
+      },
+      {
+        "command": "pixelPet.openKyogre",
+        "title": "Pixel Familiars: Open Primal Kyogre"
+      },
+      {
+        "command": "pixelPet.openArena",
+        "title": "Pixel Familiars: Open Legendary Arena"
+      },
+      {
+        "command": "pixelPet.openGroudon",
+        "title": "Pixel Pet: Open Primal Groudon"
+      },
       {
         "command": "pixelPet.openLegendary",
         "title": "Pixel Pet: Open Legendary Pet"
@@ -79,6 +95,26 @@
     "viewsContainers": {
       "panel": [
         {
+          "id": "pixelPetDeoxys",
+          "title": "Deoxys",
+          "icon": "media/pet.svg"
+        },
+        {
+          "id": "pixelPetKyogre",
+          "title": "Primal Kyogre",
+          "icon": "media/pet.svg"
+        },
+        {
+          "id": "pixelPetArena",
+          "title": "Legendary Arena",
+          "icon": "media/pet.svg"
+        },
+        {
+          "id": "pixelPetGroudon",
+          "title": "Primal Groudon",
+          "icon": "media/pet.svg"
+        },
+        {
           "id": "pixelPet",
           "title": "Pixel Pet",
           "icon": "media/pet.svg"
@@ -91,6 +127,13 @@
       ]
     },
     "views": {
+      "pixelPetGroudon": [
+        {
+          "type": "webview",
+          "id": "pixelPet.groudon",
+          "name": "Primal Groudon"
+        }
+      ],
       "pixelPetLegendary": [
         {
           "type": "webview",
@@ -103,6 +146,27 @@
           "type": "webview",
           "id": "pixelPet.companion",
           "name": "Codex Companion"
+        }
+      ],
+      "pixelPetArena": [
+        {
+          "type": "webview",
+          "id": "pixelPet.arena",
+          "name": "Legendary Arena"
+        }
+      ],
+      "pixelPetKyogre": [
+        {
+          "type": "webview",
+          "id": "pixelPet.kyogre",
+          "name": "Primal Kyogre"
+        }
+      ],
+      "pixelPetDeoxys": [
+        {
+          "type": "webview",
+          "id": "pixelPet.deoxys",
+          "name": "Deoxys \u00b7 Meteorite Sanctuary"
         }
       ]
     },
@@ -181,8 +245,12 @@
     "test:ui": "node tools/codex/smoke.mjs",
     "record:codex-pets": "node tools/codex/record-pets.mjs",
     "record:legendary": "node tools/codex/record-legendary.mjs",
+    "record:groudon": "node tools/codex/record-groudon.mjs",
     "diagnose": "tsx tools/codex/diagnose.ts",
-    "setup": "tsx tools/codex/install.ts"
+    "setup": "tsx tools/codex/install.ts",
+    "record:arena": "node tools/codex/record-arena.mjs",
+    "record:kyogre": "node tools/codex/record-kyogre.mjs",
+    "record:deoxys": "node tools/codex/record-deoxys.mjs"
   },
   "devDependencies": {
     "@types/node": "^22.0.0",

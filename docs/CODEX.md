@@ -1,6 +1,8 @@
-# Pixel Familiars for Codex 0.13.1
+# Pixel Familiars for Codex 0.19.7
 
 Maintained by [PhucUSk20](https://github.com/PhucUSk20) in [pixel-familiars](https://github.com/PhucUSk20/pixel-familiars). Existing `Pixel Pet:` command names remain available for compatibility. See [DEVELOPMENT.md](DEVELOPMENT.md) for repository ownership, attribution and the separate upstream contribution workflow.
+
+Version 0.14.0 adds **Pixel Pet: Open Primal Groudon**, an independent panel with six articulated motions and three attacks. See [the Groudon guide](PRIMAL-GROUDON.md). Version 0.15.0 also adds **Pixel Familiars: Open Legendary Arena** where Mega Rayquaza and Groudon coexist, play, spar and rest; individual panels remain available.
 
 This independent project keeps the upstream pixel engine and adds a VS Code companion, native Codex lifecycle hooks and a real MCP theme server. The pet uses its own **Pixel Pet** panel. It does not inject into OpenAI's chat UI or modify OpenAI's installed extension.
 
@@ -159,3 +161,39 @@ Version 0.13.1 keeps the sleeping muzzle in front of the coil. The upper tendril
 The supplied GIFs, JSON and reduction script remain unchanged. The rejected generic rig remains inactive. Runtime animation uses mega-rayquaza.ts, legendary-webview.ts and legendary-128px-atlas.png. Recreate docs/images/legendary-source-actions.gif with `npm.cmd run record:legendary`; append `-- --original` to record the source loop or `-- --action sleep` for an isolated sleep preview (Chrome/Edge and ffmpeg required).
 
 Appearance reference: [official Pokémon Mega Rayquaza artwork](https://www.pokemon.co.jp/ex/usum/common/images/legacy/171102_03/poke_03.jpg), from the [Ultra Sun / Ultra Moon website](https://www.pokemon.co.jp/ex/usum/legacy/171102_03.html). Preserve the elongated pointed head, long paired horns, broad fins, green serpentine body with a black underside, gold/orange markings and long flowing tendrils. Use the user's 128px sprite as the pixel-art reference. Original artwork is used for visual comparison only, not bundled in the extension.
+
+## Shared legendary panel (0.15.0)
+
+Run **Pixel Familiars: Open Legendary Arena**. Free flight, roaming, sparring and rest put Rayquaza, Groudon, Kyogre and Deoxys in the same scene. Attacks are cosmetic local animation, independent of Codex activity and usage. Individual panels still provide all manual poses. No additional hook approval is needed for this panel.
+
+Version 0.15.1 redesigns the arena as a black starry volcanic landscape. Basalt fissures, crater lava, falling cinders, smoke and embers animate locally and freeze with the pause control.
+
+## Autonomous legendary life (0.16.0)
+
+The default free mode automatically chooses independent destinations and activities for both pets. Rayquaza flies over the ocean; Groudon walks along the flat volcanic coast. Every roughly 35-60 seconds after a battle, pets travel to sparring positions, exchange 2-4 attacks, then return to their own activities. The first encounter starts after 24-36 seconds plus travel time. No user tasks or AI calls are involved. Manual Duel keeps cycling attacks; Rest stops travel while breathing continues. Pause and hiding the view suspend the entire local simulation.
+
+Recreate the README's autonomous-life GIF with `npm run record:arena -- --auto` (Chrome/Edge or Playwright Chromium and ffmpeg required).
+
+## Primal Kyogre (0.17.0)
+
+Open **Pixel Familiars: Open Primal Kyogre** for seven articulated actions and original source playback. Kyogre shares the Arena with Rayquaza, Groudon and Deoxys; Kyogre stays in the ocean and alternates with Rayquaza as Groudon's sparring partner. See [the Kyogre guide](PRIMAL-KYOGRE.md). No new hook approval is required for local animation.
+
+## Deoxys (0.18.0)
+
+Open **Pixel Familiars: Open Deoxys** for all four supplied forms, free flight and autonomous meteorite transformations. Deoxys also shares Legendary Arena. A meteorite falls nearby before the pet flies down to touch it. Attack, Defense and Speed are selected in randomized cycles and each has its own skill. [Controls and GIF](DEOXYS.md). Animation is local; no additional AI tokens or hook approval. Reload VS Code after installing to register the new panel.
+
+## Rayquaza vs Deoxys (0.19.0)
+
+The Arena **Đấu chiêu** control now starts a Rayquaza/Deoxys aerial match. Defense shield/reflection, Attack projectile/air dodge, Speed pursuit and a Normal psychic/Dragon Pulse clash cycle through meteorite form changes. See [Deoxys controls](DEOXYS.md#rayquaza-duel-0190) and the [production GIF](images/legendary-duel.gif). Cosmetic local animation, no AI requests or tokens.
+
+In 0.19.1, Kyogre and Groudon fight simultaneously below the aerial match, with independent movement into position and attack timing. Pause and Rest stop both pairs.
+
+In 0.19.2, Deoxys transformations keep a neutral source silhouette under the flash. Chest-preserving joint weights and bounded tentacle articulation prevent mesh stretching. Both autonomous and manual energy shots lock the real articulated Rayquaza head at release, then follow that ballistic direction while Rayquaza may dodge.
+
+In 0.19.3, the ground pair has five attack turns. Water cannon release is horizontal; Eruption launches diagonally from the mouth then rains over Kyogre. The added water/fire clash joins two mouth-origin beams at a central energy core. This runs alongside the aerial match and in autonomous ground sparring.
+
+In 0.19.4, Kyogre releases five separate water jets from the original circular charging positions from five circularly arranged charging orbs. The charging orbit freezes at release, and each jet starts at its orb's existing location; the standalone panel and Arena use the same renderer.
+
+In 0.19.5, fire meteors ascend and descend diagonally with matching trails. All five Kyogre jets terminate on Groudon's armor, producing distinct spray, steam and a local recoil reaction after arrival.
+
+In 0.19.6, Kyogre's storm clouds and rain extend across both pets, while jagged lightning descends from above Groudon into its articulated armor position. Impact adds sparks, a local glow and recoil. Pause freezes the storm and all four pets.
