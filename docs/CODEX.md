@@ -32,7 +32,7 @@ Requires Node 22.18+, VS Code 1.96+ and a local Codex runtime supporting lifecyc
 npm.cmd run install:codex
 ```
 
-Run this inside the cloned repo (use `npm run install:codex` on macOS/Linux). It installs dependencies, typechecks/builds/packages, installs the VSIX, finds the Codex extension's bundled CLI, and installs hooks/MCP. Node, the VS Code `code` command and the Codex extension must already be installed. The installer opens Codex with `--no-daemon`; enter `/hooks` and review/trust the **Pixel Pet observer** entries to enable **Direct hooks**. The script does not grant trust on your behalf. Exit the review CLI, reload VS Code, open the Pixel Pet panel and start a new Codex chat. Check **Direct hooks** appears after tool activity.
+Run this inside the cloned repo (use `npm run install:codex` on macOS/Linux). It installs dependencies, typechecks/builds/packages, installs the VSIX, finds the Codex extension's bundled CLI, and installs hooks/MCP. Node, the VS Code `code` command and the Codex extension must already be installed. The installer opens Codex; enter `/hooks` and review/trust the **Pixel Pet observer** entries to enable **Direct hooks**. The script does not grant trust on your behalf. Exit the review CLI, reload VS Code, open the Pixel Pet panel and start a new Codex chat. Check **Direct hooks** appears after tool activity.
 
 Alternative: `npm.cmd run install:codex -- --no-review` skips opening the review interface. Use it only when you want noninteractive installation or plan to review later; activity uses less complete **Log fallback** until trusted native hook events arrive.
 

@@ -43,11 +43,11 @@ try {
   cli('code', ['--install-extension', './dist/pixel-pet-codex.vsix', '--force'])
   run(process.execPath, ['node_modules/tsx/dist/cli.mjs', 'tools/codex/install.ts', '--codex', codex])
   console.log('\nInstalled. Reload VS Code and open the Pixel Pet panel. Start a new Codex chat to load MCP tools.')
-  if (process.argv.includes('--no-review')) {
+  if (process.argv.includes('--no-review') || !process.stdin.isTTY) {
     console.log('For native events, use Pixel Pet: Review Codex Hooks in VS Code. Log fallback works before trust.')
   } else {
     console.log('For native events, enter /hooks below and review/trust the Pixel Pet observer entries. Log fallback works before trust.')
-    run(codex, ['--no-daemon', '-C', root])
+    run(codex, ['-C', root])
   }
 } catch (error) {
   console.error(`\nPixel Pet installation: ${error.message}`)

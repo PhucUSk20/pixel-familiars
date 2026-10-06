@@ -154,7 +154,7 @@ let browser, client
 try {
   await commands.get('pixelPet.reviewHooks')()
   assert.equal(terminalCommands.length, 1)
-  assert.ok(terminalCommands[0].includes("'codex' --no-daemon -C "), 'hook review must work without a packaged daemon')
+  assert.ok(terminalCommands[0].includes("'codex' -C "), 'hook review must open interactive CLI')
   assert.ok(terminalCommands[0].includes(root), 'hook review must open the workspace')
   const executablePath = process.env.PIXEL_PET_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)
   browser = await chromium.launch({ executablePath, headless: true })

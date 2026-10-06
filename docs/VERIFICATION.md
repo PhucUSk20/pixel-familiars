@@ -129,7 +129,7 @@ Upstream base: `02eb10a`, branch `codex-vscode`. Local VS Code Codex version: `2
 - Native Codex 0.159.2 read-only app-server hooks/list recognizes all 12 installed Pixel Pet hooks with 0 configuration errors. Their trust status is currently untrusted; actual native event execution is pending user /hooks review. No trust records or bypass flags were changed.
 - `codex mcp get pixel-pet --json` confirms the enabled installed stdio server. Setup backs up and preserves existing hooks.
 - Version 0.2.1 VSIX installed successfully through `npm.cmd run install:codex -- --no-review`: dependency installation, packaging, VS Code installation, automatic bundled CLI discovery and hooks/MCP registration passed together.
-- Bundled Codex starts its interactive interface with `--no-daemon` and reaches folder trust review. The review command includes this flag; the Chromium host harness checks the generated command. No folder/hook trust was granted by this check.
+- Bundled Codex starts its interactive interface and reaches folder trust review. The review command targets the workspace; the Chromium host harness checks the generated command. No folder/hook trust was granted by this check.
 
 The actual VS Code extension-host UI was not automated. After reloading the window, use **Pixel Pet: Open Companion** to check it beside Codex.
 
