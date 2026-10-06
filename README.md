@@ -20,6 +20,16 @@ Owned and maintained by **[PhucUSk20](https://github.com/PhucUSk20)**. Based on 
 
 <p align="center"><a href="#legendary-companions">Meet the four legendary companions</a> · Autonomous roaming, meteorite transformations and two simultaneous battles.</p>
 
+## Legendary pet GIFs
+
+Click a GIF to open its full animation.
+
+| Mega Rayquaza | Primal Groudon |
+| --- | --- |
+| <a href="docs/images/legendary-source-actions.gif"><img src="docs/images/legendary-source-actions.gif" width="360" alt="Mega Rayquaza: flight, curled sleep, roar, Dragon Pulse and dash"></a> | <a href="docs/images/groudon-actions.gif"><img src="docs/images/groudon-actions.gif" width="360" alt="Primal Groudon: walking, sleep, roar, magma blades, energy burst and meteor rain"></a> |
+| **Primal Kyogre** | **Deoxys** |
+| <a href="docs/images/kyogre-actions.gif"><img src="docs/images/kyogre-actions.gif" width="360" alt="Primal Kyogre: swimming, diving, water jets, twin waterspouts and a storm"></a> | <a href="docs/images/deoxys-actions.gif"><img src="docs/images/deoxys-actions.gif" width="360" alt="Deoxys: Normal, Attack, Defense and Speed forms with distinct skills"></a> |
+
 ## Choose your companion
 
 Both integrations use the shared pixel engine and theme format. Each connects to its own runtime; features differ where their event streams and display surfaces differ.
@@ -164,6 +174,52 @@ Six actions: **heavy walking, sleep, roar, Precipice Blades, Energy Burst and Er
 
 <p align="center"><img src="docs/images/groudon-actions.gif" width="700" alt="Primal Groudon walking, resting, roaring, raising magma pillars, charging Energy Burst and launching meteor rain"></p>
 
-### License and attribution
+### Primal Kyogre
+
+Seven actions: **swimming, diving, resting, roaring, five-orb water jets, twin waterspouts and a thunderstorm**. Its fins beat with a phase lag, and the head, jaw and tail follow the motion. Two spiraling waterspouts converge into a rotating water attack; contact with Groudon creates spray, steam and recoil. [Kyogre design and controls](docs/PRIMAL-KYOGRE.md).
+
+<p align="center"><img src="docs/images/kyogre-actions.gif" width="700" alt="Primal Kyogre swimming, diving, resting and demonstrating circular water emitters, merging waterspouts and storm effects"></p>
+
+### Deoxys
+
+Deoxys flies freely until a meteorite falls nearby. It descends, touches the landed rock and transforms into **Attack**, **Defense** or **Speed**. Each form has its own skill: Normal's psychic pulse, Attack's large Psycho Boost sphere, Defense's layered barrier and Speed's rapid dodges with afterimages. [Deoxys forms, controls and animations](docs/DEOXYS.md).
+
+<p align="center"><img src="docs/images/deoxys-actions.gif" width="700" alt="Deoxys demonstrating Normal, Attack, Defense and Speed forms with distinct articulated psychic skills"></p>
+
+<details>
+<summary>Watch the meteorite landing and transformation</summary>
+
+<p align="center"><img src="docs/images/deoxys-meteor.gif" width="700" alt="A meteorite falls beside Deoxys, which flies down, touches it and changes form through psychic rings"></p>
+
+</details>
+
+## Develop
+
+- **Shared engine and Claude adapter:** `plugins/pixel-pet/`.
+- **Codex adapter and VS Code panels:** `extensions/codex/`.
+- **Build, packaging and recordings:** `tools/codex/`.
+- **Independent repo workflow and upstream contributions:** [development guide](docs/DEVELOPMENT.md).
+
+For the Codex companion, run `npm.cmd ci`, `npm.cmd run typecheck`, `npm.cmd test` and `npm.cmd run package`. Also run `npm.cmd run test:ui` after host, renderer or bridge changes. On macOS/Linux, use `npm`.
+
+For Claude plugin changes, follow [CLAUDE.md](CLAUDE.md) and run:
+
+```bash
+claude plugin validate . --strict
+claude plugin validate plugins/pixel-pet --strict
+claude plugin test plugins/pixel-pet
+```
+
+The [Claude Code guide](docs/CLAUDE.md#develop) includes generated-type setup and preview checks. Recreate Codex GIFs with `npm.cmd run record:codex-pets` or `npm.cmd run record:legendary` (Chrome/Edge and ffmpeg required).
+
+## Privacy and security
+
+The **Codex companion** observes local hooks, workspace-scoped session logs and project diagnostics. It retains sanitized activity metadata, not prompts, reasoning or full tool output. It does not modify OpenAI's installed extension or approve tools.
+
+The **Claude plugin** runs inside Claude Code, reads its theme/session usage/subagent state and draws the pet. The mod makes no network requests, starts no processes and reads no environment variables. Its optional status targets show short file/command hints; turn those off when sharing your screen.
+
+See each integration's guide for details. Report vulnerabilities through a [private security advisory](https://github.com/PhucUSk20/pixel-familiars/security/advisories/new).
+
+## License and attribution
 
 [MIT](LICENSE). Pixel Familiars is maintained by **[PhucUSk20](https://github.com/PhucUSk20)**. Original Pixel Pet by **halluqinate**, from [Namenomeaning/pixel-pet](https://github.com/Namenomeaning/pixel-pet). Original copyright notices and commit authorship are preserved.
