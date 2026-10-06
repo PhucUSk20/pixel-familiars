@@ -67,13 +67,13 @@ Run one installation command from the cloned folder:
 npm.cmd run install:codex
 ```
 
-On macOS/Linux, use `npm run install:codex`. The installer downloads dependencies, builds/packages the extension, installs it and configures the local observer hooks and MCP theme tools. It opens the bundled Codex CLI for hook review:
+On macOS/Linux, use `npm run install:codex`. The installer downloads dependencies, builds/packages the extension, installs it and configures the local observer hooks and MCP theme tools. In an interactive terminal, it opens the bundled Codex CLI for hook review:
 
 1. Approve folder trust if prompted. Enter `/hooks`, review and trust the 12 **Pixel Pet observer** entries.
 2. Exit the review CLI. Run **Developer: Reload Window**, then **Pixel Pet: Open Companion** in VS Code.
 3. Start a new Codex conversation and run a tool. The panel should show **Direct hooks** after receiving a real event.
 
-**Direct hooks** provides the fullest tool/subagent timing and compaction animations. **Log fallback** remains available when native events are unavailable; it cannot recover every nested start time. Review is required by Codex and is not granted automatically. The review CLI can close after approval.
+**Direct hooks** provides the fullest tool/subagent timing and compaction animations. **Log fallback** remains available when native events are unavailable; it cannot recover every nested start time. Review is required by Codex and is not granted automatically. The review CLI can close after approval. Noninteractive installations skip opening the CLI; use **Pixel Pet: Review Codex Hooks** in VS Code to review the observer entries manually.
 
 <p align="center"><img src="docs/images/codex-pet-summoning.gif" width="816" alt="Codex demo: sky portals summon independent Read, Edit and Run workers, with result deliveries"></p>
 

@@ -1,3 +1,10 @@
+## PR #1 installer compatibility review 0.19.10 — 2026-10-06
+
+- Reviewed nhankun2006's change against current main: remove the daemon override when launching Codex for hook review; skip the interactive launch when stdin is not a TTY. Integration has no conflicts and retains manual folder/hook trust.
+- The installed Windows Codex CLI 0.160.1 accepts the updated workspace command. Added isolated installer-control-flow regressions for Windows, macOS and Linux covering interactive launch, non-TTY behavior and explicit --no-review; subprocesses are mocked so tests perform no installation or trust changes.
+- The contributor reports a successful Fedora installation. No actual Linux environment was used in this local review; the platform matrix validates installer branching, not full Linux installation.
+- `npm ci`, typecheck, build, all 110 sequential tests, the complete Chromium UI suite and VSIX packaging pass. Installed extension 0.19.10; merged the original PR commits without rewriting contributor authorship.
+
 ## Compact one-line English Arena HUD 0.19.9 — 2026-10-06
 
 - CTX, 5h and Week remaining percentages, miniature pixel bars and compact reset countdowns stay on one line. Detailed English tooltips retain full countdown meaning. Unknown values remain unknown.
