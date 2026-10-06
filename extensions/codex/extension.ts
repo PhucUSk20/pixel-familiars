@@ -6,7 +6,7 @@ import { join, isAbsolute, resolve, relative } from 'node:path'
 import { randomBytes } from 'node:crypto'
 import { readTheme } from '../../plugins/pixel-pet/hooks/theme'
 import { discoverSessions, SessionTail, type Session } from './sessions'
-import { emptySnapshot, object, combineActivity, type Preferences } from './protocol'
+import { emptySnapshot, object, combineActivity, type Preferences, type Usage } from './protocol'
 import { bridgeRoot, eventPath, atomicJson, storedTheme, saveTheme, readJson } from './bridge'
 import { installBridge } from './install'
 import { bundledTheme, meadowTheme, upgradeMeadow } from './scene-theme'
@@ -31,6 +31,16 @@ const preferences = (): Preferences => ({ speed: config().get('speed', 'normal')
 
 class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
   private view?: vscode.WebviewView
+  private arenaVisible=false
+  private observedUsage:Usage={}
+  private usageListeners=new Set<(usage:Usage)=>void>()
+  observeUsage(listener:(usage:Usage)=>void):vscode.Disposable {
+    this.usageListeners.add(listener);listener({...this.observedUsage})
+    return {dispose:()=>{this.usageListeners.delete(listener)}}
+  }
+  setArenaVisible(visible:boolean):void {this.arenaVisible=visible;if(visible)void this.poll(true)}
+  private publishUsage(usage:Usage):void {this.observedUsage={...usage};for(const listener of this.usageListeners)listener({...usage})}
+
   private sessions: Session[] = []
   private tail?: SessionTail
   private hookTail?: SessionTail
@@ -156,7 +166,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
 
   async poll(force = false): Promise<void> {
     if (this.busy || this.disposed || !vscode.workspace.isTrusted) return
-    if (!force && !this.view?.visible) return
+    if (!force && !this.view?.visible && !this.arenaVisible) return
     this.busy = true
     try {
       if (Date.now() >= this.nextScan || force) { await this.scan(); this.nextScan = Date.now() + 2000 }
@@ -176,6 +186,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
       }
       snapshot = await this.subagents.poll(home(), vscode.workspace.workspaceFolders?.map(folder => folder.uri.fsPath) ?? [], snapshot)
       this.error = ''
+      this.publishUsage(snapshot.usage)
       if (!preferences().targets) snapshot.target = ''
       if (!preferences().targets) snapshot.toolStates = snapshot.toolStates?.map(tool => ({ ...tool, target: '' }))
       // Command directories stay in the host; the UI receives only project outcomes.
@@ -185,6 +196,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
       const code = object(error).code
       const message = code === 'ENOENT' ? 'Codex sessions not found. Check Pixel Pet: Codex Home in Settings.' : `Session observer: ${error instanceof Error ? error.message : String(error)}`
       if (message !== this.error) { this.output.appendLine(message); this.error = message }
+      this.publishUsage({})
       await this.view?.webview.postMessage({ type: 'activity', snapshot: emptySnapshot(), demo: this.demo, preferences: preferences(), connection: message })
     } finally { this.busy = false }
   }
@@ -280,7 +292,7 @@ class Companion implements vscode.WebviewViewProvider, vscode.Disposable {
     void vscode.window.showInformationMessage('In the Codex terminal, enter /hooks and review/trust only the Pixel Pet observer entries. Then reload VS Code and start a new Codex session.')
   }
   report(error: unknown): void { this.output.appendLine(error instanceof Error ? error.message : String(error)) }
-  dispose(): void { this.disposed = true; this.project.dispose(); clearInterval(this.timer); clearTimeout(this.wakeTimer); this.bridgeWatcher?.close(); this.eventsWatcher?.close() }
+  dispose(): void { this.disposed = true; this.usageListeners.clear(); this.project.dispose(); clearInterval(this.timer); clearTimeout(this.wakeTimer); this.bridgeWatcher?.close(); this.eventsWatcher?.close() }
 }
 
 export function activate(context: vscode.ExtensionContext): void {
@@ -294,7 +306,7 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand('pixelPet.openDeoxys', () => vscode.commands.executeCommand('pixelPet.deoxys.focus')),
     vscode.window.registerWebviewViewProvider('pixelPet.kyogre', new Kyogre(context)),
     vscode.commands.registerCommand('pixelPet.openKyogre', () => vscode.commands.executeCommand('pixelPet.kyogre.focus')),
-    vscode.window.registerWebviewViewProvider('pixelPet.arena', new Arena(context)),
+    vscode.window.registerWebviewViewProvider('pixelPet.arena', new Arena(context,{subscribe:listener=>companion.observeUsage(listener),visible:value=>companion.setArenaVisible(value)})),
     vscode.commands.registerCommand('pixelPet.openArena', () => vscode.commands.executeCommand('pixelPet.arena.focus')),
     vscode.commands.registerCommand('pixelPet.openGroudon', () => vscode.commands.executeCommand('pixelPet.groudon.focus')),
     vscode.commands.registerCommand('pixelPet.openLegendary', () => vscode.commands.executeCommand('pixelPet.legendary.focus')),

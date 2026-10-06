@@ -1,4 +1,4 @@
-# Pixel Familiars for Codex 0.19.7
+# Pixel Familiars for Codex 0.19.9
 
 Maintained by [PhucUSk20](https://github.com/PhucUSk20) in [pixel-familiars](https://github.com/PhucUSk20/pixel-familiars). Existing `Pixel Pet:` command names remain available for compatibility. See [DEVELOPMENT.md](DEVELOPMENT.md) for repository ownership, attribution and the separate upstream contribution workflow.
 
@@ -197,3 +197,5 @@ In 0.19.4, Kyogre releases five separate water jets from the original circular c
 In 0.19.5, fire meteors ascend and descend diagonally with matching trails. All five Kyogre jets terminate on Groudon's armor, producing distinct spray, steam and a local recoil reaction after arrival.
 
 In 0.19.6, Kyogre's storm clouds and rain extend across both pets, while jagged lightning descends from above Groudon into its articulated armor position. Impact adds sparks, a local glow and recoil. Pause freezes the storm and all four pets.
+
+Legendary Arena HUD (0.19.8): the footer contains remaining context, 5-hour quota and weekly quota. Both quota rows show reset countdowns; unknown values remain unknown. It shares the existing workspace observer and selected session, and refreshes while Arena is visible even if the main Pixel Pet view is closed. Only numeric usage metadata reaches Arena. The compact CTX, 5h and Week meters share a single line. Auto, Duel and Rest buttons remain visible below them; the Pause control is removed. All Arena labels and tooltips are English.

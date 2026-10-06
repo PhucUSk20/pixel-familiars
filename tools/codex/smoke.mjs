@@ -128,7 +128,8 @@ const server = createServer(async (request, response) => {
 })
 await new Promise(done => server.listen(0, '127.0.0.1', done))
 const url = `http://127.0.0.1:${server.address().port}`
-arenaProvider.resolveWebviewView({ webview: { cspSource: url, set options(value) {}, set html(value) { arenaMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.js') ? 'arena.js' : uri.fsPath.includes('deoxys-') ? uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png') : uri.fsPath.includes('groudon') ? 'groudon.png' : uri.fsPath.includes('kyogre') ? 'kyogre.png' : 'legendary.png'}` } })
+let arenaReceive,arenaVisibility,arenaLivePage
+const arenaView={visible:false,onDidChangeVisibility:handler=>{arenaVisibility=handler;return disposable()},onDidDispose:disposable,webview: { onDidReceiveMessage:handler=>{arenaReceive=handler;return disposable()},postMessage:async data=>{if(arenaLivePage)await arenaLivePage.evaluate(data=>window.dispatchEvent(new MessageEvent('message',{data})),data);return true},cspSource: url, set options(value) {}, set html(value) { arenaMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.js') ? 'arena.js' : uri.fsPath.includes('deoxys-') ? uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png') : uri.fsPath.includes('groudon') ? 'groudon.png' : uri.fsPath.includes('kyogre') ? 'kyogre.png' : 'legendary.png'}` } };arenaProvider.resolveWebviewView(arenaView)
 legendaryProvider.resolveWebviewView({ webview: {
   cspSource: url,
   set options(value) {},
@@ -143,12 +144,12 @@ groudonProvider.resolveWebviewView({ webview: {
   set html(value) { groudonMarkup = value },
   asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.png') ? 'groudon.png' : 'groudon.js'}`,
 } })
-provider.resolveWebviewView({ visible: true, onDidDispose: disposable, webview: {
+const companionView={ visible: true, onDidDispose: disposable, webview: {
   set html(value) { html = value },
   asWebviewUri: () => `${url}/webview.js`,
   onDidReceiveMessage: handler => { receive = handler; return disposable() },
   postMessage: async data => { if (page) await page.evaluate(data => window.dispatchEvent(new MessageEvent('message', { data })), data); return true },
-} })
+} };provider.resolveWebviewView(companionView)
 let browser, client
 try {
   await commands.get('pixelPet.reviewHooks')()
@@ -337,6 +338,20 @@ try {
   await page.waitForFunction(() => document.querySelector('#stage').getAttribute('aria-label').startsWith('slime,'))
   await appendFile(log, record('event_msg', { type: 'task_started' }) + record('response_item', { type: 'function_call', call_id: 'test-call', name: 'read_file', arguments: '{"path":"private-name.ts"}' }) + record('event_msg', { type: 'token_count', info: { model_context_window: 100000, last_token_usage: { total_tokens: 25000 } }, rate_limits: { primary: { window_minutes: 300, used_percent: 20 } } }))
   await page.waitForFunction(() => document.querySelector('#hud').textContent.includes('75%'))
+  // Arena receives the same real session usage even while the companion is hidden.
+  companionView.visible=false;arenaView.visible=true;arenaVisibility()
+  arenaLivePage=await browser.newPage({viewport:{width:720,height:340}})
+  await arenaLivePage.exposeFunction('arenaHostBridge',message=>arenaReceive(message))
+  await arenaLivePage.addInitScript(()=>{window.acquireVsCodeApi=()=>({postMessage:message=>window.arenaHostBridge(message)})})
+  await arenaLivePage.goto(`${url}/arena`)
+  await arenaLivePage.waitForFunction(()=>document.querySelector('.quota[data-key=hp] output').textContent==='75%')
+  const arenaResetAt=Math.floor(Date.now()/1000)
+  await appendFile(log,record('event_msg',{type:'token_count',info:{model_context_window:100000,last_token_usage:{total_tokens:25000}},rate_limits:{primary:{window_minutes:300,used_percent:20,resets_at:arenaResetAt+7200},secondary:{window_minutes:10080,used_percent:37,resets_at:arenaResetAt+3*86400}}}))
+  await arenaLivePage.waitForFunction(()=>document.querySelector('.quota[data-key=st] output').textContent==='63%')
+  assert.deepEqual(await arenaLivePage.locator('#arena-hud output').allTextContents(),['75%','80%','63%'])
+  await arenaLivePage.screenshot({path:'dist/arena-live-usage.png'})
+  arenaView.visible=false;arenaVisibility();const closedArenaPage=arenaLivePage;arenaLivePage=undefined;await closedArenaPage.close();companionView.visible=true
+
   await page.waitForFunction(() => /reading|turning|skimming/.test(document.querySelector('#status').textContent))
   await page.click('#mini-feed')
   await page.waitForFunction(() => document.querySelector('#mini-stage').dataset.action === 'feed')

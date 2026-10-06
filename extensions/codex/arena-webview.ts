@@ -1,3 +1,4 @@
+import { arenaUsage,arenaUsageRows } from './arena-hud'
 import { drawGroundDuel, drawMeteorRain } from './ground-duel-effects'
 import { drawAirDuel } from './air-duel-effects'
 import { DeoxysRenderer } from './deoxys-renderer'
@@ -9,6 +10,30 @@ import { drawArenaScene } from './arena-scene'
 import { MegaAnimator, MegaTexture, megaMouth, MEGA_DURATION, type MegaAction } from './mega-rayquaza'
 import { GroudonAnimator, GroudonTexture, groudonMouth, GROUDON_DURATION, type GroudonAction } from './primal-groudon'
 
+declare function acquireVsCodeApi():{postMessage(message:unknown):void}
+const api=typeof acquireVsCodeApi==='function'?acquireVsCodeApi():undefined
+let usage:unknown={},lastUsageKey=''
+function renderUsage(now=Date.now()):void {
+ const key=JSON.stringify([usage,Math.floor(now/60000)])
+ if(key===lastUsageKey)return;lastUsageKey=key
+ for(const row of arenaUsageRows(usage,now)){
+  const element=document.querySelector<HTMLElement>(`.quota[data-key=${row.key}]`)!,meter=element.querySelector<HTMLElement>('.meter')!
+  element.querySelector('label')!.textContent=row.label
+  element.querySelector('output')!.textContent=row.value===undefined?'—':`${Math.round(row.value)}%`
+  element.querySelector('.reset')!.textContent=row.reset?`↻${row.reset.replace('reset ','').split(' ')[0]}`:''
+  element.dataset.low=String(row.value!==undefined&&row.value<=20)
+  meter.querySelector<HTMLElement>('i')!.style.width=`${row.value??0}%`
+  meter.setAttribute('aria-label',`${row.label} remaining: ${row.value===undefined?'unavailable':Math.round(row.value)+'%'}`)
+  meter.setAttribute('aria-valuemin','0');meter.setAttribute('aria-valuemax','100')
+  if(row.value===undefined)meter.removeAttribute('aria-valuenow');else meter.setAttribute('aria-valuenow',String(row.value))
+  element.title=row.value===undefined?'Usage data is unavailable for the selected Codex session':`${row.label} remaining: ${Math.round(row.value)}%${row.reset?' · '+row.reset:''}`
+ }
+}
+window.addEventListener('message',(event:MessageEvent<unknown>)=>{
+ const message=event.data
+ if(message&&typeof message==='object'&&(message as {type?:unknown}).type==='arena-usage'){usage=arenaUsage((message as {usage?:unknown}).usage);renderUsage()}
+})
+renderUsage();api?.postMessage({type:'arena-ready'})
 const canvas = document.querySelector<HTMLCanvasElement>('#arena')!, ctx = canvas.getContext('2d')!
 const status = document.querySelector<HTMLElement>('#arena-status')!
 const ray = new MegaAnimator(), groudon = new GroudonAnimator(), kyogre = new KyogreAnimator()
@@ -23,7 +48,7 @@ let rayTexture: MegaTexture, groundTexture: GroudonTexture
 const life = new ArenaLife()
 const deoxysLife = life.deoxys
 const deoxys = new DeoxysRenderer(DEOXYS_FORMS.map(form => document.querySelector<HTMLImageElement>(`#arena-deoxys-${form}`)!))
-let paused = false, last = 0, paint = 0, ready = false, rayRevision = -1, groundRevision = -1
+let last = 0, paint = 0, ready = false, rayRevision = -1, groundRevision = -1
 const pixel = (x: number, y: number, w: number, h: number, color: string) => { pen.fillStyle = color; pen.fillRect(Math.round(x), Math.round(y), w, h) }
 function ring(x: number, y: number, r: number, color: string): void {
   for (let i = 0; i < 48; i++) { const a = i * Math.PI / 24; pixel(x + Math.cos(a) * r, y + Math.sin(a) * r, 2, 2, color) }
@@ -102,11 +127,11 @@ function draw(): void {
     if (beat % 4 === 2 && p > .35 && p < .85) for (let i = 0; i < 4; i++) { const h = Math.max(0, Math.sin(Math.min(1, Math.max(0, (p - .35 - i * .04) * 4)) * Math.PI)) * 42; pixel(gx - 14 - i * 23, 189 - h, 8, h, '#8b4835'); pixel(gx - 12 - i * 23, 190 - h, 2, h, '#ffc262') }
     if(beat%4===3)drawMeteorRain(pen,p,fireMouth,target)
     if (turn === 0 && (mode==='duel'||life.opponent === 'kyogre')) phase = p < .43 ? 'charge' : p < .7 ? 'projectile' : p < .88 ? 'shield' : 'recover'
-    status.textContent = `Äáº¥u tập · ${(mode==='duel'||life.opponent === 'kyogre') ? 'Kyogre & Groudon' : 'Rayquaza & Groudon'} · ${beat % 4 === 0 ? (mode==='duel'||life.opponent === 'kyogre') ? 'Cầu sáng / tia nước' : 'Dragon Pulse' : ['','Energy Burst','Precipice Blades','Eruption'][beat % 4]} · ${phase}`
+    status.textContent = `Sparring · ${(mode==='duel'||life.opponent === 'kyogre') ? 'Kyogre & Groudon' : 'Rayquaza & Groudon'} · ${beat % 4 === 0 ? (mode==='duel'||life.opponent === 'kyogre') ? 'Hydro Cannon' : 'Dragon Pulse' : ['','Energy Burst','Precipice Blades','Eruption'][beat % 4]} · ${phase}`
   } else if(mode!=='duel') {
     if (life.ray.action === 'sleep' || life.groudon.action === 'sleep') { pen.fillStyle = '#b5e3df'; pen.font = '10px monospace'; pen.fillText('z Z', rx + 110, 44); pen.fillText('z Z', gx + 150, 64) }
     else { const x = 235 + Math.sin(t) * 45, y = 70 + Math.cos(t * 1.3) * 22; ring(x, y, 3, '#ffdb81'); pixel(x, y, 2, 2, '#fff2cc') }
-    status.textContent = life.state === 'approach' ? 'Các pet đang tới vị trí đấu tập…' : mode === 'rest' ? 'Bốn pet cùng nghỉ · thở chậm' : `Tự do · Rayquaza: ${life.ray.action} · Groudon: ${life.groudon.action} · Kyogre: ${life.kyogre.action}`
+    status.textContent = life.state === 'approach' ? 'Pets are moving into position…' : mode === 'rest' ? 'All four pets are resting' : `Auto · Rayquaza: ${life.ray.action} · Groudon: ${life.groudon.action} · Kyogre: ${life.kyogre.action}`
   }
   if(mode==='duel') {
     phase=life.airDuel.phase
@@ -125,7 +150,6 @@ document.querySelectorAll<HTMLButtonElement>('button[data-mode]').forEach(button
   life.select(mode as ArenaMode); actions()
   document.querySelectorAll('button[data-mode]').forEach(item => item.setAttribute('aria-pressed', String(item === button))); draw()
 }))
-document.querySelector('#arena-pause')!.addEventListener('click', event => { paused = !paused; const button = event.currentTarget as HTMLButtonElement; button.setAttribute('aria-pressed', String(paused)); button.textContent = paused ? 'Tiếp tục' : 'Tạm dừng' })
 new ResizeObserver(draw).observe(canvas)
 async function load(): Promise<void> {
   await deoxys.load()
@@ -135,10 +159,11 @@ async function load(): Promise<void> {
   const data = images.map(image => { context.clearRect(0, 0, 128, 128); context.drawImage(image, 0, 0, 128, 128, 0, 0, 128, 128); return context.getImageData(0, 0, 128, 128).data })
   rayTexture = new MegaTexture(data[0]); groundTexture = new GroudonTexture(data[1]); seaTexture = new KyogreTexture(data[2]); ready = true; actions(); draw()
 }
-void load().catch(() => { status.textContent = 'Không tải được sprite. Hãy cài lại extension.' })
+void load().catch(() => { status.textContent = 'Unable to load sprites. Reinstall the extension.' })
 function tick(now: number): void {
+  renderUsage()
   const delta = last ? Math.max(0, Math.min(100, now - last)) : 0; last = now
-  if (ready && !paused && !document.hidden) {
+  if (ready && !document.hidden) {
     life.advance(delta); actions()
     // Attacks finish once per turn; breathing and roaming motions keep looping.
     ray.advance(life.state === 'duel' ? Math.max(0, Math.min(delta, MEGA_DURATION[ray.action] - 1 - ray.elapsed)) : delta, false)

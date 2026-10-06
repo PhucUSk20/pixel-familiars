@@ -1,3 +1,17 @@
+## Compact one-line English Arena HUD 0.19.9 — 2026-10-06
+
+- CTX, 5h and Week remaining percentages, miniature pixel bars and compact reset countdowns stay on one line. Detailed English tooltips retain full countdown meaning. Unknown values remain unknown.
+- Restored visible Auto, Duel and Rest buttons directly below the meters. Removed the header menu and Pause button/handler. Arena text, loading/error messages and accessible labels are English.
+- Responsive browser assertions check a single meter row, no horizontal overflow and visible actions underneath on narrow and shallow panels. Shared real session usage still updates with the Pixel Pet view hidden.
+- `npm ci`, typecheck, build, all 107 sequential tests and the complete Chromium UI suite pass. Re-recorded both Arena GIFs, packaged and installed extension 0.19.9.
+
+## Shared Legendary Arena usage HUD 0.19.8 — 2026-10-06
+
+- Replaced the action-button footer with remaining context, 5-hour quota and weekly quota plus reset countdowns. Unknown values remain unknown. Moved animation controls to the header menu, retaining automatic play by default.
+- Arena subscribes to the companion's existing workspace/session observer. Arena visibility keeps that observer active independently of the Pixel Pet view. The webview receives only bounded numeric usage/reset fields; no transcript or tool contents. Disposal removes its subscription.
+- Coverage checks three metrics, metadata sanitization, countdown boundaries, missing values, live updates with the companion hidden, controls, pause and responsive layout.
+- `npm ci`, typecheck, build, all 107 sequential tests and the complete Chromium UI suite pass. Recorded both Arena GIFs with the new footer, packaged and installed extension 0.19.8.
+
 ## Magma blades and twin waterspouts 0.19.7 — 2026-10-06
 
 - Groudon sends a glowing ground fracture towards Kyogre. Six successive jagged magma columns grow taller along the path, erupt beneath Kyogre and throw fragments, spray and steam. Kyogre recoils on contact. The standalone panel uses the same blade renderer.

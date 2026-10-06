@@ -15,6 +15,17 @@ export async function checkArena(browser, url) {
   try {
     await page.goto(`${url}/arena`)
     await page.waitForFunction(() => document.querySelector('#arena')?.dataset.ready === 'true', undefined, { polling: 50 })
+    const selectMode=async mode=>{await page.locator(`button[data-mode="${mode}"]`).click()}
+
+    assert.equal(await page.locator('#arena-hud .quota').count(),3)
+    assert.deepEqual(await page.locator('#arena-controls button').allTextContents(),['Auto','Duel','Rest']);assert.equal(await page.locator('#arena-pause').count(),0)
+    assert.deepEqual(await page.locator('#arena-hud output').allTextContents(),['—','—','—'])
+    const now=Math.floor(Date.now()/1000)
+    await page.evaluate(usage=>window.dispatchEvent(new MessageEvent('message',{data:{type:'arena-usage',usage}})),{hp:75,mp:80,st:63,mpReset:now+7200,stReset:now+3*86400})
+    assert.deepEqual(await page.locator('#arena-hud output').allTextContents(),['75%','80%','63%'])
+    assert.match(await page.locator('.quota[data-key=mp] .reset').textContent(),/2h/)
+    assert.match(await page.locator('.quota[data-key=st] .reset').textContent(),/3d/)
+    await page.screenshot({path:'dist/arena-usage.png'})
     const advance = ms => page.evaluate(ms => { for (let t = 0; t <= ms; t += 50) { window.arenaNow += 50; window.arenaTick(window.arenaNow) } }, ms)
     await advance(1600)
     assert.deepEqual(await page.evaluate(() => [...document.querySelector('#arena').getContext('2d').getImageData(0, 0, 1, 1).data]), [0, 0, 0, 255], 'arena and letterboxing must be black')
@@ -24,7 +35,7 @@ export async function checkArena(browser, url) {
     assert.ok(Number(await page.locator('#arena').getAttribute('data-kyogre-x')) > -15)
     assert.ok(Number(await page.locator('#arena').getAttribute('data-ray-x')) > 16)
     assert.ok(Number(await page.locator('#arena').getAttribute('data-ground-x')) < 224)
-    await page.locator('button[data-mode="duel"]').click()
+    await selectMode('duel')
     for (let i = 0; i < 60 && await page.locator('#arena').getAttribute('data-air-stage') !== 'fight'; i++) await advance(250)
     assert.equal(await page.locator('#arena').getAttribute('data-state'),'duel')
     assert.equal(await page.locator('#arena').getAttribute('data-opponent'),'deoxys')
@@ -48,7 +59,7 @@ export async function checkArena(browser, url) {
       await page.screenshot({path:`dist/arena-ground-${turn===2?'vortex-'+elapsed:turn===3&&elapsed===3500?'thunder':effect}.png`})
     }
     // Restart both pairs for the aerial phase assertions.
-    await page.locator('button[data-mode="duel"]').click()
+    await selectMode('duel')
     for(let i=0;i<120&&await page.locator('#arena').getAttribute('data-air-stage')!=='fight';i++)await advance(250)
     await advance(3300)
     assert.equal(await page.locator('#arena').getAttribute('data-phase'),'projectile')
@@ -73,7 +84,7 @@ export async function checkArena(browser, url) {
       assert.equal(await page.locator('#arena').getAttribute('data-phase'),phase)
       await page.screenshot({path:`dist/arena-air-round-${turn}.png`})
     }
-    await page.locator('button[data-mode="play"]').click()
+    await selectMode('play')
     for (let i = 0; i < 70 && await page.locator('#arena').getAttribute('data-state') !== 'duel'; i++) await advance(1000)
     assert.equal(await page.locator('#arena').getAttribute('data-state'), 'duel', 'free mode starts battles without user input')
     await advance(30000)
@@ -90,23 +101,20 @@ export async function checkArena(browser, url) {
       }
     }
     assert.ok(autoAim,'autonomous Deoxys spells target Rayquaza too')
-    await page.locator('button[data-mode="rest"]').click()
+    await selectMode('rest')
     await advance(1600)
     assert.equal(await page.locator('#arena').getAttribute('data-ray'), 'sleep')
     assert.equal(await page.locator('#arena').getAttribute('data-groudon'), 'sleep')
     assert.equal(await page.locator('#arena').getAttribute('data-kyogre'), 'sleep')
     assert.equal(await page.locator('#arena').getAttribute('data-deoxys-state'),'rest')
-    await page.locator('#arena-pause').click()
-    const frozenImage = await page.evaluate(() => document.querySelector('#arena').toDataURL())
-    const frozen = await page.locator('#arena').getAttribute('data-elapsed')
-    await advance(2000)
-    assert.equal(await page.locator('#arena').getAttribute('data-elapsed'), frozen)
-    assert.equal(await page.evaluate(() => document.querySelector('#arena').toDataURL()), frozenImage, 'pause freezes eruption, lava and stars too')
     for (const viewport of [{ width: 240, height: 350 }, { width: 1600, height: 180 }]) {
       await page.setViewportSize(viewport)
       await page.waitForTimeout(100)
       assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth), false)
       assert.ok(await page.evaluate(() => document.querySelector('#arena').width > 0))
+      assert.ok(await page.locator('#arena-hud').evaluate(el=>{const r=el.getBoundingClientRect();return r.bottom<=innerHeight&&r.left>=0&&r.right<=innerWidth}),'all usage bars fit inside the panel')
+      assert.ok(await page.locator('#arena-hud').evaluate(el=>{const r=[...el.querySelectorAll('.quota')].map(q=>q.getBoundingClientRect());return Math.max(...r.map(q=>q.top))-Math.min(...r.map(q=>q.top))<2&&r.every(q=>q.right<=innerWidth&&q.left>=0)}),'three metrics always share one line')
+      assert.ok(await page.locator('#arena-controls').evaluate(el=>{const r=el.getBoundingClientRect(),hud=document.querySelector('#arena-hud').getBoundingClientRect();return r.top>=hud.bottom&&r.bottom<=innerHeight}),'actions remain below the HUD and visible')
       if (viewport.width > 1000) {
         assert.ok(Number(await page.locator('#arena').getAttribute('data-world-width')) > 1000, 'wide panels add world space rather than letterboxing')
         const edges = await page.evaluate(() => {
@@ -118,7 +126,7 @@ export async function checkArena(browser, url) {
       }
     }
     assert.deepEqual(errors, [])
-    assert.deepEqual(await page.evaluate(() => window.arenaMessages), [])
-    console.log('PASS: shared legendary arena, four pets including ocean-bounded Kyogre and meteorite Deoxys, independent roaming, automatic battle and return, Rayquaza/Deoxys defense, dodge, pursuit and clash, rest, pause, responsive layout and no AI messages.')
+    assert.deepEqual(await page.evaluate(() => window.arenaMessages), [{type:'arena-ready'}])
+    console.log('PASS: shared legendary arena, four pets including ocean-bounded Kyogre and meteorite Deoxys, independent roaming, automatic battle and return, Rayquaza/Deoxys defense, dodge, pursuit and clash, rest, one-line English usage HUD, visible actions, responsive layout and no AI messages.')
   } finally { await page.close() }
 }
