@@ -57,6 +57,8 @@ Use a suitable contribution branch and push to that fork's `origin`. Only commit
 
 Use `npm.cmd run install:codex` from this directory when choosing to install this development copy. Hook review is still required. Installation updates the local hook/MCP paths to this directory; installing the sibling copy later changes them back. Keep one installed development copy active at a time.
 
+On macOS, use `npm run install:codex`; see the [macOS setup guide](../README.md#macos-intel-and-apple-silicon). Use `npm` instead of `npm.cmd` for all verification commands below. The macOS CI workflow installs dependencies and runs typecheck, tests and packaging without installing personal Codex hooks or changing trust. Before claiming a release was tested on a Mac, also verify VSIX installation, Arena rendering and real companion activity in VS Code on that Mac.
+
 For compatibility, extension identifiers, `pixelPet.*` commands/settings, `pixel-pet-codex` package/VSIX names and preserved Claude plugin paths currently retain their established names. The displayed extension name is **Pixel Familiars**. `pixel-pet-local` is a technical local publisher identifier, not ownership or a grant of repository access. Marketplace publishing can migrate identifiers separately.
 
 ## Verification and attribution

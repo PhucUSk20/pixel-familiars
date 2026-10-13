@@ -38,6 +38,16 @@ When stdin is not a TTY (for example, a piped or automated installation), the in
 
 Alternative: `npm.cmd run install:codex -- --no-review` skips opening the review interface. Use it only when you want noninteractive installation or plan to review later; activity uses less complete **Log fallback** until trusted native hook events arrive.
 
+### macOS installation
+
+See the [macOS installation steps](../README.md#macos-intel-and-apple-silicon) for Intel and Apple Silicon. Use `npm` in Terminal, with Node 22.18+ and VS Code 1.96+. The installer supports VS Code's `code` command or discovers the application CLI under `/Applications/Visual Studio Code.app` and `~/Applications/Visual Studio Code.app`. Paths containing spaces are passed as subprocess arguments.
+
+If `node` or `npm` is unavailable, install Node and restart Terminal. If VS Code is installed elsewhere and `code` is unavailable, run **Shell Command: Install 'code' command in PATH** from the Command Palette (**Cmd+Shift+P**) and restart Terminal. Install the Codex extension in the same VS Code installation you use for Pixel Familiars. Prefer native Apple Silicon Node and VS Code on Apple Silicon so the installer and extension host select the same bundled Codex architecture.
+
+After installation, reload the VS Code window and open **Pixel Familiars: Open Legendary Arena** to check rendering. For activity tracking, open a local project, review **Pixel Pet: Review Codex Hooks**, start a new Codex conversation and run a tool. Confirm **Direct hooks** only after real activity; otherwise check **Log fallback** and the selected workspace/session. Configuration defaults to `~/.codex`, or `CODEX_HOME` when set. Remote SSH/container sessions require setup in their own extension host.
+
+`.github/workflows/macos.yml` runs build/package checks on a macOS runner. Installer tests simulate both Intel and Apple Silicon selection; they do not install VS Code or grant hook trust on a Mac.
+
 The installer copies bundled hook/MCP code and assets into `<CODEX_HOME>/pixel-pet/runtime`, backs up and merges its entries into `<CODEX_HOME>/hooks.json`, and registers the `pixel-pet` stdio MCP server. Other hooks/servers are preserved. No added model calls or API key are required. **Pixel Pet: Set Up Codex Hooks and MCP** remains available for reinstallation from an installed extension.
 
 Local VSIX packaging uses `tools/codex/package.mjs` with the MIT-licensed `fflate` ZIP library and an explicit list of runtime assets. The package command typechecks and builds first; it does not include dependencies, sign extensions or publish to the Marketplace. The Microsoft `vsce-sign` dependency is not required or installed. MCP registration must succeed before the installer commits the merged hook configuration.

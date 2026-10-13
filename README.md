@@ -103,6 +103,22 @@ On macOS/Linux, use `npm run install:codex`. The installer downloads dependencie
 2. Exit the review CLI. Run **Developer: Reload Window**, then **Pixel Pet: Open Companion** in VS Code.
 3. Start a new Codex conversation and run a tool. The panel should show **Direct hooks** after receiving a real event.
 
+#### macOS (Intel and Apple Silicon)
+
+Install Node **22.18+**, VS Code **1.96+** and the Codex extension in VS Code. Put `Visual Studio Code.app` in `/Applications` or `~/Applications`. Open Terminal in the cloned repository and run:
+
+```bash
+npm run install:codex
+```
+
+The installer selects the bundled Codex executable for your Node architecture (`x64` or `arm64`). It can find VS Code in either Applications folder when `code` is absent from PATH. For a custom VS Code location, use **Cmd+Shift+P → Shell Command: Install 'code' command in PATH**, then restart Terminal, as described in the [VS Code macOS setup guide](https://code.visualstudio.com/docs/setup/mac#launch-vs-code-from-the-command-line).
+
+Complete the hook review above, reload VS Code, then run **Pixel Familiars: Open Legendary Arena** or **Pixel Pet: Open Companion** from **Cmd+Shift+P**. Arena animations run locally without a Codex conversation. The companion's activity tracking needs a local Codex session in the opened workspace.
+
+For manual VSIX installation, run `npm ci && npm run package`, then use **Extensions → … → Install from VSIX…** and select `dist/pixel-pet-codex.vsix`. Run **Pixel Pet: Set Up Codex Hooks and MCP** afterward if you want activity tracking. The same VSIX is used on Windows, macOS and Linux.
+
+The repository includes a macOS CI workflow for dependency installation, typechecking, tests and packaging. A successful local Windows run does not establish a successful macOS GUI installation; real hook delivery must be checked on the target Mac.
+
 **Direct hooks** provides the fullest tool/subagent timing and compaction animations. **Log fallback** remains available when native events are unavailable; it cannot recover every nested start time. Review is required by Codex and is not granted automatically. The review CLI can close after approval. Noninteractive installations skip opening the CLI; use **Pixel Pet: Review Codex Hooks** in VS Code to review the observer entries manually.
 
 <p align="center"><img src="docs/images/codex-pet-summoning.gif" width="816" alt="Codex demo: sky portals summon independent Read, Edit and Run workers, with result deliveries"></p>

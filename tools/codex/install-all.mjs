@@ -3,9 +3,11 @@ import { spawnSync } from 'node:child_process'
 import { existsSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
+import { homedir } from 'node:os'
 
 const root = fileURLToPath(new URL('../../', import.meta.url))
 const windows = process.platform === 'win32'
+let codeCommand = 'code'
 function run(command, args, capture = false) {
   const result = spawnSync(command, args, { cwd: root, stdio: capture ? ['ignore', 'pipe', 'pipe'] : 'inherit', encoding: 'utf8', windowsHide: true })
   if (result.error) throw result.error
@@ -16,13 +18,23 @@ function run(command, args, capture = false) {
 function cli(command, args, capture = false) {
   return windows
     ? run(process.env.ComSpec || 'cmd.exe', ['/d', '/s', '/c', `${command}.cmd ${args.join(' ')}`], capture)
-    : run(command, args, capture)
+    : run(command === 'code' ? codeCommand : command, args, capture)
 }
 
 try {
   const [major, minor] = process.versions.node.split('.').map(Number)
   if (major < 22 || (major === 22 && minor < 18)) throw new Error('Install Node 22.18 or later first.')
-  cli('code', ['--version'], true)
+  try {
+    cli('code', ['--version'], true)
+  } catch (error) {
+    if (process.platform !== 'darwin' || error.code !== 'ENOENT') throw error
+    const application = ['/Applications', join(homedir(), 'Applications')]
+      .map(directory => join(directory, 'Visual Studio Code.app', 'Contents', 'Resources', 'app', 'bin', 'code'))
+      .find(path => existsSync(path))
+    if (!application) throw new Error("Install Visual Studio Code in Applications, or run Shell Command: Install 'code' command in PATH from its Command Palette and restart Terminal.")
+    codeCommand = application
+    cli('code', ['--version'], true)
+  }
   let codex
   const platform = { win32: 'windows', darwin: 'macos', linux: 'linux' }[process.platform]
   const architecture = { x64: 'x86_64', arm64: 'aarch64' }[process.arch]
