@@ -1,16 +1,32 @@
 import { KYOGRE_DURATION, type KyogreAction, type KyogrePose } from './primal-kyogre'
 
-/** Freeze the orbit at release so every jet starts where its charging orb already was. */
-export function kyogreJetOrigins(mouth:{x:number;y:number},right:boolean,elapsed:number):{x:number;y:number}[] {
+/** Freeze the orbit at release; optional top aligns its highest jet to the opponent head. */
+export function kyogreJetOrigins(mouth:{x:number;y:number},right:boolean,elapsed:number,top?:number):{x:number;y:number}[] {
  const t=Math.min(elapsed,KYOGRE_DURATION.pulse*.46)/1000,dir=right?1:-1
- return Array.from({length:5},(_,i)=>{const a=i*Math.PI*2/5+t*.55;return {x:mouth.x+dir*(14+Math.cos(a)*10),y:mouth.y+Math.sin(a)*22}})
+ const offset=top===undefined?0:top-mouth.y-Math.min(...Array.from({length:5},(_,i)=>Math.sin(i*Math.PI*2/5+KYOGRE_DURATION.pulse*.46/1000*.55)*22))
+ return Array.from({length:5},(_,i)=>{const a=i*Math.PI*2/5+t*.55;return {x:mouth.x+dir*(14+Math.cos(a)*10),y:mouth.y+offset+Math.sin(a)*22}})
 }
 export function kyogreThunderActive(elapsed:number):boolean {
  const p=elapsed/KYOGRE_DURATION.rain
  return p>.25&&p<.95&&(elapsed/1000)%1.75<.16
 }
+function rainNoise(seed:number):number {
+ let value=seed|0
+ value=Math.imul(value^(value>>>16),0x45d9f3b)
+ value=Math.imul(value^(value>>>16),0x45d9f3b)
+ return ((value^(value>>>16))>>>0)/4294967296
+}
+/** Independent phases and speeds avoid diagonal rows; each drop falls vertically until respawn. */
+export function kyogreRainDrops(left:number,right:number,surface:number,elapsed:number):{x:number;y:number;length:number;progress:number}[] {
+ const width=right-left,count=Math.max(1,Math.ceil(width/7)),t=elapsed/1000
+ return Array.from({length:count},(_,i)=>{
+  const age=t*(.5+rainNoise(i*11+701)*.4)+rainNoise(i*17+311)
+  const cycle=Math.floor(age),progress=age-cycle
+  return {x:left+(i+rainNoise(i*23+cycle*997+101))*width/count,y:30+progress*(surface-30),length:3+Math.floor(rainNoise(i*31+cycle*953+73)*4),progress}
+ })
+}
 /** Shared pixel water effects for the preview and arena, with an articulated origin. */
-export function drawKyogreEffects(ctx: CanvasRenderingContext2D, action: KyogreAction, pose: KyogrePose, elapsed: number, mouth: { x: number; y: number }, right = false, range = 180, surface = 150,hitX?:number,thunderTarget?:{x:number;y:number},waveTarget?:{x:number;y:number}): void {
+export function drawKyogreEffects(ctx: CanvasRenderingContext2D, action: KyogreAction, pose: KyogrePose, elapsed: number, mouth: { x: number; y: number }, right = false, range = 180, surface = 150,hitX?:number,thunderTarget?:{x:number;y:number},waveTarget?:{x:number;y:number},placement?:{pulseTop?:number;stormLeft?:number}): void {
   const t = elapsed/1000, p = elapsed/KYOGRE_DURATION[action], dir = right ? 1 : -1
   const pixel = (x: number,y: number,w: number,h: number,color: string) => { ctx.fillStyle = color; ctx.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h)) }
   const disc = (x: number,y: number,r: number,color: string) => {
@@ -22,7 +38,7 @@ export function drawKyogreEffects(ctx: CanvasRenderingContext2D, action: KyogreA
   }
   const orb = (x: number,y: number,r: number) => { disc(x,y,r,'#21689c'); disc(x,y,r*.75,'#69c6ec'); disc(x-1,y-1,r*.45,'#dcfbff'); ring(x,y,r+2) }
   if (action === 'pulse' && p > .02 && p < .94) {
-    const origins=kyogreJetOrigins(mouth,right,elapsed)
+    const origins=kyogreJetOrigins(mouth,right,elapsed,placement?.pulseTop)
     for(let i=0;i<5;i++) {
       const {x:ox,y:oy}=origins[i]
       if (p < .46) {
@@ -72,10 +88,13 @@ export function drawKyogreEffects(ctx: CanvasRenderingContext2D, action: KyogreA
       }
     }
   } else if (action === 'rain' && p > .1 && p < .95) {
-    const stormMin=Math.min(mouth.x-65,(thunderTarget?.x??mouth.x)-45)
+    const stormMin=Math.min(mouth.x-65,(thunderTarget?.x??mouth.x)-45,placement?.stormLeft??Infinity)
     const stormMax=Math.max(mouth.x+95,(thunderTarget?.x??mouth.x)+45),stormWidth=stormMax-stormMin
     for(let i=0;i<Math.ceil(stormWidth/24);i++){const x=stormMin+i*24,y=19+i%3*3;pixel(x,y,27,5,'#243947');pixel(x+4,y-3,18,4,'#314a5a')}
-    for(let i=0;i<Math.ceil(stormWidth/5);i++){const f=(t*.75+i*.071)%1,x=stormMin+(i*31)%stormWidth-f*8,y=30+f*(surface-30);pixel(x,y,1,5,'#5d9dbb');if(f>.92)ring(x,surface+1,2+(f-.92)*30,.3,'#719caa')}
+    for(const drop of kyogreRainDrops(stormMin,stormMax,surface,elapsed)){
+      pixel(drop.x,drop.y,1,drop.length,'#5d9dbb')
+      if(drop.progress>.92)ring(drop.x,surface+1,2+(drop.progress-.92)*30,.3,'#719caa')
+    }
     if(kyogreThunderActive(elapsed)) {
       const target=thunderTarget??{x:mouth.x+dir*40,y:surface}
       const start={x:target.x,y:27},length=Math.max(1,Math.hypot(target.x-start.x,target.y-start.y))

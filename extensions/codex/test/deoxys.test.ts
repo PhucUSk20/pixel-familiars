@@ -41,7 +41,7 @@ test('free flight changes both altitude and position; meteor lands nearby before
 })
 
 test('shared arena gives Deoxys a higher coastal flight lane, separate from the ocean pets',()=>{
- const life=new DeoxysLife(()=>.25,true);assert.equal(life.y,-18)
+ const life=new DeoxysLife(()=>.25,true);assert.equal(life.y,-120)
  life.resize(1200);life.advance(6000);assert.ok(life.x>=1200*.42&&life.x<=1008);assert.ok(life.y<0)
  life.resize(480);assert.ok(life.x>=480*.42&&life.x<=288)
 })
@@ -53,4 +53,12 @@ test('transformation keeps all forms structurally neutral beneath the flash',()=
   for(const joint of ['head','leftArm','rightArm','leftLeg','rightLeg','angle'] as const)assert.equal(pose[joint],0)
   assert.equal(pose.squash,1)
  }
+})
+
+test('Arena meteor stops by Deoxys chest and transforms through touch without descending',()=>{
+ const life=new DeoxysLife(()=>.4,true);const at={x:life.x,y:life.y};life.meteor('speed');life.advance(600);assert.equal(life.form,'normal');assert.equal(life.state,'meteor');assert.ok(life.meteorY<life.meteorStopY);life.advance(50);assert.equal(life.state,'touch');assert.equal(life.meteorY,at.y+86);assert.equal(life.meteorX,at.x+140);life.advance(350);assert.equal(life.state,'transform');life.advance(400);assert.equal(life.form,'normal');life.advance(50);assert.equal(life.form,'speed');life.advance(450);assert.equal(life.state,'roam');assert.equal(life.meteorVisible,false);assert.equal(life.x,at.x);assert.equal(life.y,at.y)
+})
+
+test('airborne meteor retargets on resize and rest cancels it before form switching',()=>{
+ const life=new DeoxysLife(()=>.4,true);life.resize(1200);life.x=900;life.meteor('attack');life.advance(300);life.resize(480);assert.equal(life.meteorX,life.x+140);life.rest(true);life.advance(5000);assert.equal(life.form,'normal');assert.equal(life.meteorVisible,false)
 })

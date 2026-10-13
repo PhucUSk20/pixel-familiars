@@ -6,7 +6,7 @@ test('manual duel stages Rayquaza vs Deoxys, transforms through contact and cove
  const life=new ArenaLife(()=>.4), start=[life.ray.x,life.deoxys.x,life.deoxys.y]
  life.select('duel');assert.equal(life.opponent,'deoxys');assert.deepEqual([life.ray.x,life.deoxys.x,life.deoxys.y],start)
  const turns=new Map<number,string>(),states=new Set<string>(), groundTurns=new Set<number>()
- let previous=life.deoxys.form, touched=false, dodged=false,chased=false
+ let previous=life.deoxys.form, touched=false, clashed=false,chased=false
  for(let i=0;i<95000;i+=50){
   life.advance(50);states.add(life.deoxys.state)
   if(life.deoxys.state==='touch')touched=true
@@ -14,13 +14,13 @@ test('manual duel stages Rayquaza vs Deoxys, transforms through contact and cove
   previous=life.deoxys.form
   if(life.airDuel.stage==='fight'){
    turns.set(life.turn,life.deoxys.form)
-   if(life.turn===1&&life.ray.y>0)dodged=true
+   if(life.turn===1&&life.airDuel.phase==='impact'){assert.equal(life.ray.y,-120);clashed=true}
    if(life.turn===2&&life.ray.x>life.airDuel.rayX+30)chased=true
   }
   if(life.groundState==='fight'){groundTurns.add(life.groundTurn);assert.equal(life.groudon.right,false);assert.equal(life.kyogre.right,true)}
  }
  assert.deepEqual([...turns].slice(0,4),[[0,'defense'],[1,'attack'],[2,'speed'],[3,'normal']])
- assert.ok(states.has('meteor')&&states.has('touch')&&dodged&&chased)
+ assert.ok(states.has('meteor')&&states.has('touch')&&clashed&&chased)
  assert.deepEqual([...groundTurns],[0,1,2,3,4])
 })
 test('cancelling or resizing an aerial fight preserves finite bounds and resumes autonomous life',()=>{

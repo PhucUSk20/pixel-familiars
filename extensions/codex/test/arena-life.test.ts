@@ -5,17 +5,18 @@ import { ArenaLife } from '../arena-life'
 test('autonomous pets roam independently, stage occasional battles, and resume life without manual tasks', () => {
   let seed = 42
   const life = new ArenaLife(() => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 })
+  life.sunMoon.nextVisit=life.creation.nextVisit=life.arceus.nextVisit=life.avian.nextVisit=life.unova.nextVisit=life.kalos.nextVisit=life.galar.nextVisit=life.necrozma.nextVisit=Infinity
   const rayActions = new Set(), groundActions = new Set(), states = new Set()
   let movedRay = false, movedGround = false, previous = life.state, returns = 0, fights = 0
-  for (let time = 0; time < 300000; time += 50) {
+  for (let time = 0; time < 600000; time += 50) {
     life.advance(50)
     states.add(life.state); rayActions.add(life.ray.action); groundActions.add(life.groudon.action)
     movedRay ||= Math.abs(life.ray.x - 16) > 20; movedGround ||= Math.abs(life.groudon.x - 224) > 20
-    assert.ok(life.ray.x >= 4 && life.ray.x <= life.width - 196)
-    assert.ok(life.groudon.x >= 90 && life.groudon.x <= 230)
+    assert.ok(life.ray.x >= (life.state==='divine'?-24:4) && life.ray.x <= life.width - 196)
+    assert.ok(life.groudon.x >= 90 && life.groudon.x <= (life.state==='divine'?268:230))
     if (previous !== 'duel' && life.state === 'duel') {
-      fights++; assert.equal(life.ray.x, 16); assert.equal(life.groudon.x, 224)
-      assert.equal(life.ray.right, true); assert.equal(life.groudon.right, false)
+      fights++; if(!life.residentDuel){assert.equal(life.ray.x, life.airDuel.rayX); assert.equal(life.groudon.x, life.duelGroundX)}
+      assert.equal(life.ray.right, true); if(!life.residentDuel)assert.equal(life.groudon.right, false)
     }
     if (previous === 'duel' && life.state === 'roam') returns++
     previous = life.state
@@ -46,27 +47,29 @@ test('rest stops travel; manual battle stages from current positions and free mo
 test('wide arena expands flight and keeps Groudon on land across resizes', () => {
   let seed = 17
   const life = new ArenaLife(() => { seed = (seed * 1664525 + 1013904223) >>> 0; return seed / 2 ** 32 })
+  life.sunMoon.nextVisit=life.creation.nextVisit=life.arceus.nextVisit=Infinity
   life.resize(1600)
   let maxRayX = 0, maxGroundX = 0, minY = Infinity, maxY = -Infinity
   for (let i = 0; i < 24000; i++) {
     life.advance(50)
     maxRayX = Math.max(maxRayX, life.ray.x); maxGroundX = Math.max(maxGroundX, life.groudon.x)
     minY = Math.min(minY, life.ray.y); maxY = Math.max(maxY, life.ray.y)
-    assert.ok(life.groudon.x >= life.groundMin && life.groudon.x <= life.groundMax)
+    assert.ok(life.groudon.x >= life.groundMin && life.groudon.x <= (life.state==='divine'?life.width-212:life.groundMax))
     assert.equal(life.groudon.y, 44)
   }
   assert.ok(maxRayX > 480 && maxGroundX > 800)
   assert.ok(maxY - minY > 40, 'flight changes altitude substantially')
   for (const width of [480, 1000, 480]) {
     life.resize(width)
-    assert.ok(life.groudon.x >= life.groundMin && life.groudon.x <= life.groundMax)
-    assert.ok(life.ray.x >= 4 && life.ray.x <= width - 196)
+    assert.ok(life.groudon.x >= life.groundMin && life.groudon.x <= (life.state==='divine'?life.width-212:life.groundMax))
+    assert.ok(life.ray.x >= (life.state==='divine'?-24:4) && life.ray.x <= width - 196)
   }
 })
 
 test('Kyogre stays in the sea, moves independently and joins alternating automatic battle pairs', () => {
   let seed = 7
   const life = new ArenaLife(() => { seed = (seed*1664525+1013904223) >>> 0; return seed/2**32 })
+  life.sunMoon.nextVisit=life.avian.nextVisit=life.creation.nextVisit=life.arceus.nextVisit=Infinity
   const actions = new Set(), opponents = new Set()
   let moved = false
   for (let i = 0; i < 18000; i++) {

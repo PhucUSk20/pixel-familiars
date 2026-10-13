@@ -24,13 +24,19 @@ export class DeoxysLife {
   private requestedForm?: DeoxysForm
   constructor(private random: () => number = Math.random, private skyLane = false) {
     this.x = this.clampX(this.x); this.target = this.x
-    if (skyLane) this.y = this.targetY = -18
+    if (skyLane) this.y = this.targetY = -120
   }
 
+  get airborneMeteor(): boolean { return this.skyLane }
+  get meteorStopY(): number { return this.skyLane ? this.y + 86 : 184 }
+  get meteorFallDuration(): number { return this.skyLane ? 650 : 1500 }
+  get touchDuration(): number { return this.skyLane ? 350 : 1700 }
+  get transformDuration(): number { return this.skyLane ? 900 : 2400 }
   resize(width: number): void {
     this.width = Math.max(480, width)
     this.x = this.clampX(this.x)
     this.meteorX = Math.max(160, Math.min(this.width - 37, this.meteorX))
+    if(this.skyLane&&this.meteorVisible)this.meteorX=this.x+140
     this.target = this.state === 'approach' ? this.meteorX - 155 : this.clampX(this.target)
   }
   private clampX(x: number): number { return Math.max(this.skyLane ? this.width * .42 : 0, Math.min(this.width - 192, x)) }
@@ -39,9 +45,9 @@ export class DeoxysLife {
   }
   meteor(form?: DeoxysForm): void {
     this.requestedForm = form
-    // Land beside the current pet, not at a fixed destination across the panel.
-    this.meteorX = Math.max(160, Math.min(this.width - 37, this.x + 155 + (this.random() - .5) * 36))
-    this.meteorY = -32; this.meteorVisible = true
+    // Arena contact stays airborne; the dedicated sanctuary still lands beside the pet.
+    this.meteorX = Math.max(160, Math.min(this.width - 37, this.skyLane ? this.x + 140 : this.x + 155 + (this.random() - .5) * 36))
+    this.meteorY = this.skyLane ? this.y-100 : -32; this.meteorVisible = true
     this.target = this.x; this.targetY = this.y
     this.enter('meteor', 'float')
   }
@@ -50,7 +56,7 @@ export class DeoxysLife {
   rest(value: boolean): void {
     this.requestedForm = undefined
     // Cancel an unfinished descent without leaving a meteorite suspended in the sky.
-    if (this.state === 'meteor') this.meteorVisible = false
+    if (this.state === 'meteor' || this.skyLane) this.meteorVisible = false
     if (value) this.enter('rest', 'rest')
     else { this.enter('roam', 'float'); this.next = this.clock + 5000 }
   }
@@ -73,8 +79,9 @@ export class DeoxysLife {
     this.clock += delta; this.elapsed += delta
     if (this.state === 'rest' || this.state === 'battle') return
     if (this.state === 'meteor') {
-      const fall = Math.min(1, this.elapsed / 1500)
-      this.meteorY = -32 + 216 * fall * fall
+      const fall = Math.min(1, this.elapsed / this.meteorFallDuration)
+      const start=this.skyLane?this.y-100:-32;this.meteorY = start + (this.meteorStopY-start) * fall * fall
+      if(this.skyLane&&this.elapsed>=this.meteorFallDuration){this.enter('touch','touch');return}
       if (this.elapsed >= 2100) {
         this.target = this.meteorX - 155; this.targetY = 52
         this.enter('approach', 'float')
@@ -90,24 +97,24 @@ export class DeoxysLife {
         else this.skill()
       } else if (this.state === 'roam' && Math.abs(dx) < .1 && Math.abs(dy) < .1 && this.elapsed > 1800) {
         this.target = this.clampX(this.x + (this.random() - .5) * 230)
-        this.targetY = this.skyLane ? -28 + this.random() * 20 : -22 + this.random() * 64
+        this.targetY = this.skyLane ? -130 + this.random() * 20 : -22 + this.random() * 64
         this.elapsed = 0
       }
-    } else if (this.state === 'touch' && this.elapsed >= 1700) {
+    } else if (this.state === 'touch' && this.elapsed >= this.touchDuration) {
       this.previousForm = this.form
       this.targetForm = this.requestedForm ?? (this.form === 'normal' ? this.variant() : 'normal')
       this.requestedForm = undefined
       this.enter('transform', 'transform')
     } else if (this.state === 'transform') {
-      if (this.elapsed >= 1200) this.form = this.targetForm
-      if (this.elapsed >= 2400) {
+      if (this.elapsed >= this.transformDuration/2) this.form = this.targetForm
+      if (this.elapsed >= this.transformDuration) {
         this.returning = false; this.meteorVisible = false
         if (this.form === 'normal') this.skill()
-        else { this.enter('roam', 'float'); this.next = this.clock + 3500; this.targetY = this.skyLane ? -18 : 12 }
+        else { this.enter('roam', 'float'); this.next = this.clock + 3500; this.targetY = this.skyLane ? -120 : 12 }
       }
     } else if (this.state === 'skill' && this.elapsed >= 6500) {
       this.returning = this.form !== 'normal'
-      this.enter('roam', 'float'); this.next = this.clock + 6500; this.targetY = this.skyLane ? -18 : -4
+      this.enter('roam', 'float'); this.next = this.clock + 6500; this.targetY = this.skyLane ? -120 : -4
     }
   }
 }

@@ -4,7 +4,7 @@
   "description": "Animated pixel companions, magical summons and legendary pets for your AI workspace.",
   "author": "PhucUSk20",
   "publisher": "pixel-pet-local",
-  "version": "0.19.10",
+  "version": "0.36.0",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -166,7 +166,7 @@
         {
           "type": "webview",
           "id": "pixelPet.deoxys",
-          "name": "Deoxys \u00b7 Meteorite Sanctuary"
+          "name": "Deoxys · Meteorite Sanctuary"
         }
       ]
     },

@@ -1,10 +1,10 @@
 import { test } from 'node:test'
 import assert from 'node:assert/strict'
 import { meteorFlight,drawGroundDuel,drawPrecipiceBlades } from '../ground-duel-effects'
-import { drawKyogreEffects,kyogreJetOrigins,kyogreThunderActive } from '../kyogre-effects'
+import { drawKyogreEffects,kyogreJetOrigins,kyogreThunderActive,kyogreRainDrops } from '../kyogre-effects'
 import { kyogrePose } from '../primal-kyogre'
 
-function canvas(){const fills:{x:number;y:number;w:number;h:number;color:string}[]=[];const ctx={fillStyle:'',fillRect(x:number,y:number,w:number,h:number){fills.push({x,y,w,h,color:this.fillStyle})}};return {ctx:ctx as unknown as CanvasRenderingContext2D,fills}}
+function canvas(){const fills:{x:number;y:number;w:number;h:number;color:string}[]=[];const ctx={fillStyle:'',globalAlpha:1,save(){},restore(){},fillRect(x:number,y:number,w:number,h:number){fills.push({x,y,w,h,color:this.fillStyle})}};return {ctx:ctx as unknown as CanvasRenderingContext2D,fills}}
 test('five water jets originate at the unchanged circular charging positions in either facing direction',()=>{
  for(const right of [true,false]) {
   const {ctx,fills}=canvas(),mouth={x:210,y:115}
@@ -98,5 +98,49 @@ test('Kyogre raises two separate waterspouts, merges them and sends a water dril
   const hit=canvas();drawKyogreEffects(hit.ctx,'wave',kyogrePose('wave',5800),5800,mouth,right,180,189,undefined,undefined,target)
   const splash=hit.fills.filter(p=>p.color==='#d3fbff');assert.ok(splash.length>0);assert.ok(Math.abs((Math.min(...splash.map(p=>p.x))+Math.max(...splash.map(p=>p.x)))/2-target.x)<2&&Math.abs((Math.min(...splash.map(p=>p.y))+Math.max(...splash.map(p=>p.y)))/2-target.y)<2,'impact is centered on the opponent')
   assert.ok(hit.fills.some(p=>p.color==='#bedcde'),'steam and splash at armor contact')
+ }
+})
+
+test('arena raises the whole orbital cluster so the highest horizontal jet matches Groudon head',()=>{
+ const mouth={x:80,y:140},top=95
+ for(const right of [true,false]){
+  const origins=kyogreJetOrigins(mouth,right,5800,top)
+  assert.ok(Math.abs(Math.min(...origins.map(o=>o.y))-top)<1e-9)
+  assert.deepEqual(origins,kyogreJetOrigins(mouth,right,3220,top))
+  const {ctx,fills}=canvas()
+  drawKyogreEffects(ctx,'pulse',kyogrePose('pulse',5800),5800,mouth,right,220,189,right?300:-140,undefined,undefined,{pulseTop:top})
+  const jets=fills.filter(p=>p.color==='#d7ffff')
+  assert.equal(Math.min(...jets.map(p=>p.y)),top)
+  assert.equal(new Set(jets.map(p=>p.y)).size,5)
+ }
+})
+test('storm clouds and rain extend to the ocean left edge while keeping the original cloud style',()=>{
+ const mouth={x:170,y:140},target={x:350,y:115},normal=canvas(),expanded=canvas()
+ drawKyogreEffects(normal.ctx,'rain',kyogrePose('rain',3500),3500,mouth,true,180,189,undefined,target)
+ drawKyogreEffects(expanded.ctx,'rain',kyogrePose('rain',3500),3500,mouth,true,180,189,undefined,target,undefined,{stormLeft:0})
+ const clouds=expanded.fills.filter(p=>p.color==='#243947')
+ assert.equal(Math.min(...clouds.map(p=>p.x)),0)
+ assert.ok(clouds.some(p=>p.x>=target.x),'cloud bank still reaches Groudon')
+ assert.ok(clouds.every(p=>p.w===27&&p.h===5),'existing stepped pixel cloud shapes are preserved')
+ const rain=expanded.fills.filter(p=>p.color==='#5d9dbb')
+ for(let x=0;x<208;x+=20)assert.ok(rain.some(p=>p.x>=x&&p.x<x+20),'rain covers every part of the ocean')
+ assert.ok(rain.some(p=>Math.abs(p.x-target.x)<20),'rain remains above the lightning target')
+})
+
+test('rain drops fall vertically with independent phases, lengths and speeds across narrow and wide storms',()=>{
+ for(const width of [208,480,1240]){
+  const first=kyogreRainDrops(0,width,189,3500),next=kyogreRainDrops(0,width,189,3510)
+  assert.deepEqual(first,kyogreRainDrops(0,width,189,3500),'stable animation frame without random flicker')
+  assert.ok(new Set(first.map(d=>d.length)).size>=3)
+  for(let i=0;i<first.length;i++){
+   if(next[i].progress<first[i].progress)continue // Respawn chooses a fresh position.
+   assert.equal(next[i].x,first[i].x,'no diagonal drift during a fall')
+   assert.ok(next[i].y>first[i].y)
+  }
+  for(let x=0;x+28<=width;x+=28)assert.ok(first.some(d=>d.x>=x&&d.x<Math.min(width,x+28)))
+  assert.ok(first[0].x<7&&first.at(-1)!.x>width-7,'rain reaches both storm edges')
+  for(let bin=0;bin<4;bin++)assert.ok(first.some(d=>d.progress>=bin/4&&d.progress<(bin+1)/4))
+  const intervals=first.slice(1).map((d,i)=>d.progress-first[i].progress)
+  assert.ok(new Set(intervals.map(d=>d.toFixed(2))).size>10,'neighboring drops do not share a regular diagonal phase sequence')
  }
 })

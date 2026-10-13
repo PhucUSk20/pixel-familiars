@@ -2,7 +2,7 @@
 
 Open **Pixel Familiars: Open Deoxys** for a dedicated panel, or **Pixel Familiars: Open Legendary Arena** to share the scene with Rayquaza, Groudon and Kyogre.
 
-In the shared Arena, Deoxys uses a higher flight lane over the coast to give the other pets space. It descends only for meteorite contact.
+In the shared Arena, Deoxys uses a higher flight lane over the coast to give the other pets space. Since 0.23.2, a meteorite stops immediately in front of its chest. Deoxys touches it and transforms while remaining at the same altitude. The Arena contact sequence takes 1.9 seconds: 0.65-second descent, 0.35-second touch and a 0.9-second transformation with the form swap at the flash midpoint.
 
 Everything runs locally: Canvas animation and a bounded simulation clock. No model calls, prompts, API keys or AI token usage. Hidden panels and Pause stop the simulation.
 

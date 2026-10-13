@@ -27,6 +27,25 @@ test('VSIX contains install metadata and all runtime assets, excludes repository
     assert.ok(archive['extension/docs/CLAUDE.md'])
     assert.ok(archive['extension/dist/groudon.js'])
     assert.ok(archive['extension/dist/arena.js'])
+    for(const species of ['hoopa-unbound','mega-latias','mega-latios','koraidon','miraidon','zacian-crowned','zamazenta-crowned','eternatus','eternatus-eternamax']){
+      assert.ok(archive[`extension/extensions/codex/${species}-128px-atlas.png`])
+      assert.ok(archive[`extension/docs/images/${species}-128px.gif`])
+    }
+    assert.ok(archive['extension/docs/GALAR.md'])
+    assert.ok(archive['extension/docs/images/galar-heroes.gif'])
+    for(const species of ['xerneas','yveltal','zygarde-complete','mega-zygarde-complete']){
+      assert.ok(archive[`extension/extensions/codex/${species}-128px-atlas.png`])
+      assert.ok(archive[`extension/docs/images/${species}-128px.gif`])
+    }
+    assert.ok(archive['extension/docs/KALOS.md'])
+    assert.ok(archive['extension/docs/images/kalos-guardians.gif'])
+    assert.ok(archive['extension/extensions/codex/arceus-128px-atlas.png'])
+    for(const species of ['palkia','dialga','giratina','lunala','solgaleo',...['normal','dawn','dusk','ultra'].map(f=>'necrozma-'+f)])assert.ok(archive[`extension/extensions/codex/${species}-128px-atlas.png`])
+    assert.ok(archive['extension/docs/images/arceus-judgment.gif'])
+    assert.ok(archive['extension/docs/GIRATINA.md'])
+    assert.ok(archive['extension/docs/AERIAL-FINALE.md'])
+    assert.ok(archive['extension/docs/images/aerial-finale.gif'])
+    assert.ok(archive['extension/docs/images/giratina-encounter.gif']);assert.ok(archive['extension/docs/images/sun-moon-encounter.gif']);assert.ok(archive['extension/docs/SUN-MOON.md'])
     assert.ok(archive['extension/dist/kyogre.js'])
     assert.ok(archive['extension/dist/deoxys.js'])
     for(const form of ['normal','attack','defense','speed']) assert.ok(archive[`extension/extensions/codex/deoxys-${form}-128px-atlas.png`])

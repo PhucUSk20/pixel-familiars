@@ -1,0 +1,95 @@
+import assert from 'node:assert/strict'
+export async function checkCreationGuarantee(browser,url){
+ const page=await browser.newPage({viewport:{width:960,height:500}}),errors=[]
+ page.on('pageerror',error=>errors.push(String(error)))
+ await page.addInitScript(()=>{window.creationNow=1000;window.requestAnimationFrame=callback=>{window.arenaTick=callback;return 1}})
+ try{
+  await page.goto(`${url}/arceus-demo`);await page.waitForFunction(()=>document.querySelector('#arena')?.dataset.ready==='true')
+  await page.evaluate(()=>{window.arenaTick(window.creationNow);window.creationChance(.9);window.divineJoinChance(.9)})
+  for(const count of ['2','3','2','3']){
+   await page.locator('button[data-mode=rest]').click();await page.locator('#arena-creation').click()
+   await page.evaluate(()=>{for(let i=0;i<1000;i+=100)window.arenaTick(window.creationNow+=100)})
+   assert.equal(await page.locator('#arena').getAttribute('data-visitor-count'),count)
+   assert.equal(await page.locator('#arena').getAttribute('data-giratina-active'),String(count==='3'))
+   assert.equal(await page.locator('#arena-creation').isDisabled(),true)
+  }
+  assert.deepEqual(errors,[]);console.log('PASS: repeated real Space / Time clicks alternate rival-only and guaranteed Giratina visits when random rolls omit Giratina; Rest preserves history.')
+ }finally{await page.close()}
+}
+export async function checkCreation(browser,url){
+  const page=await browser.newPage({viewport:{width:960,height:500}}),errors=[]
+  page.on('pageerror',error=>errors.push(String(error)))
+  await page.addInitScript(()=>{window.creationNow=1000;window.requestAnimationFrame=callback=>{window.arenaTick=callback;return 1}})
+  const advance=duration=>page.evaluate(duration=>{for(let t=0;t<duration;t+=100)window.arenaTick(window.creationNow+=100)},duration)
+  const data=()=>page.locator('#arena').evaluate(canvas=>({...canvas.dataset}))
+  try{
+    await page.goto(`${url}/arceus-demo`)
+    await page.waitForFunction(()=>document.querySelector('#arena')?.dataset.ready==='true')
+    await page.evaluate(()=>window.arenaTick(window.creationNow))
+    for(const species of ['palkia','dialga'])assert.equal(await page.evaluate(species=>{const c=document.createElement('canvas');c.width=c.height=128;const p=c.getContext('2d');p.drawImage(document.querySelector(`#arena-${species}`),0,0);return p.getImageData(0,0,1,1).data[3]},species),0)
+    await page.evaluate(()=>{window.creationScenario(false);window.creationChance(0);window.divineJoinChance(.9)})
+    const beforeCamera=await data()
+    await page.locator('#arena-creation').click();assert.equal(await page.locator('#arena-creation').isDisabled(),true)
+    await advance(2200);assert.equal((await data()).creationStage,'arrival')
+    const afterCamera=await data()
+    for(const key of ['rayScreenX','deoxysScreenX','kyogreScreenX','groundScreenX'])assert.ok(Math.abs(Number(afterCamera[key])-Number(beforeCamera[key]))<.2,`${key} holds position during sky expansion`)
+    await page.screenshot({path:'dist/creation-portals.png'})
+    await advance(4200);assert.equal((await data()).creationStage,'ordinary-fire')
+    await page.screenshot({path:'dist/creation-mouth-clash.png'})
+    await advance(4700);assert.equal((await data()).creationStage,'signature-charge')
+    await page.screenshot({path:'dist/creation-signature-charge.png'})
+    await advance(3700);assert.equal((await data()).creationStage,'signature-fire')
+    await page.screenshot({path:'dist/creation-signature-clash.png'})
+    await advance(2500);assert.equal((await data()).creationStage,'signature-impact');assert.equal((await data()).creationRift,'true');assert.equal((await data()).riftCount,'1')
+    await advance(2200);assert.equal((await data()).creationStage,'await-arceus');assert.equal((await data()).judgmentTargets,'6')
+    await advance(6600);assert.equal((await data()).arceusShield,'true');assert.ok(Number((await data()).assaultPower)>.95)
+    await page.screenshot({path:'dist/creation-six-pet-assault.png'})
+    const rift=await data()
+    await advance(10600);const hit=await data();assert.equal(hit.palkiaShield,'true');assert.equal(hit.dialgaShield,'true')
+    for(const key of ['rayHit','deoxysHit','fireHit','divineGroundHit','palkiaHit','dialgaHit'])assert.ok(Number(hit[key])>0,`${key} reacts to six-target Judgment`)
+    assert.equal(hit.riftX,rift.riftX);assert.equal(hit.riftY,rift.riftY,'spatial rupture stays at the collision, not attached to a recoiling hand')
+    await page.screenshot({path:'dist/creation-six-pet-judgment.png'})
+    await advance(11000);assert.equal((await data()).visitorCount,'0');assert.equal((await data()).arceusStage,'absent')
+    await page.evaluate(()=>window.creationChance(.9));await page.locator('#arena-creation').click();await advance(19500)
+    assert.equal((await data()).creationStage,'aftershock');assert.equal((await data()).arceusStage,'absent')
+    await advance(5400);assert.equal((await data()).visitorCount,'0');assert.equal((await data()).state,'roam')
+    // Second ordinary variant: a hand-charged spinning orb, selected once for the encounter.
+    await page.locator('#arena-creation').click();await page.evaluate(()=>window.creationVariant('orb'));await advance(6200)
+    assert.equal((await data()).palkiaOrdinary,'orb');await page.screenshot({path:'dist/creation-hand-orb.png'})
+    for(const viewport of [{width:240,height:360},{width:1600,height:180}]){
+      await page.setViewportSize(viewport);await advance(400)
+      assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth>innerWidth),false)
+      assert.ok(await page.locator('#arena-controls').evaluate(element=>element.getBoundingClientRect().bottom<=innerHeight))
+      const current=await data();assert.ok(Number(current.palkiaX)>=0&&Number(current.dialgaX)<=Number(current.worldWidth)-192)
+    }
+    await page.locator('button[data-mode=rest]').click();assert.equal((await data()).visitorCount,'0')
+    await advance(2400);await page.setViewportSize({width:960,height:500});await advance(300)
+    // Reverse arrival order: Arceus first, then the rivals before the combined assault.
+    await page.evaluate(()=>{window.divineJoinChance(0);window.creationChance(.9)})
+    await page.locator('#arena-summon').click();await advance(1800)
+    assert.equal((await data()).visitorCount,'2');assert.equal((await data()).creationStage,'arrival')
+    await advance(2600);assert.equal((await data()).judgmentTargets,'6');assert.equal((await data()).creationRift,'false')
+    await advance(18500);assert.equal((await data()).creationStage,'departure');assert.equal((await data()).creationRift,'false');await advance(4500);assert.equal((await data()).visitorCount,'0')
+    await page.locator('button[data-mode=rest]').click();await advance(2500)
+    await page.evaluate(()=>{window.creationScenario(true);window.creationChance(.9);window.divineJoinChance(.9)})
+    await page.locator('#arena-creation').click();await advance(1600)
+    const rising=await data();assert.equal(rising.visitorCount,'3');assert.equal(rising.giratinaActive,'true');assert.equal(rising.giratinaShield,'true');assert.ok(Number(rising.giratinaY)>-355)
+    await page.screenshot({path:'dist/giratina-emergence.png'})
+    await advance(5700);const trioFire=await data();assert.equal(trioFire.creationStage,'ordinary-fire');assert.equal(trioFire.residentDuel,'true');assert.equal(trioFire.giratinaShield,'false');assert.equal(trioFire.giratinaY,'-355')
+    await page.screenshot({path:'dist/giratina-shadow-lash.png'})
+    const residentMoved=await page.evaluate(()=>{const canvas=document.querySelector('#arena'),sample=()=>[canvas.dataset.groundElapsed,canvas.dataset.groundScreenX,canvas.dataset.kyogreScreenX].join('|'),before=sample();let moved=false;for(let t=0;t<7200;t+=100){window.arenaTick(window.creationNow+=100);moved ||= sample()!==before}return moved});assert.ok(residentMoved,'ground pets continue their battle or approach during the visitor encounter')
+    await page.screenshot({path:'dist/giratina-alliance.png'})
+    await advance(1300);const volley=await data();assert.equal(volley.shadowClashes,'2');assert.equal(Number(volley.palkiaHit),0);assert.equal(Number(volley.dialgaHit),0)
+    await page.screenshot({path:'dist/giratina-twin-orbs.png'})
+    await advance(800);const cracks=await data();assert.equal(cracks.riftCount,'2');assert.ok(Number(cracks.riftX)<Number(cracks.riftRightX));const stable=[cracks.riftX,cracks.riftY,cracks.riftRightX,cracks.riftRightY];await page.screenshot({path:'dist/giratina-twin-ruptures.png'});await advance(1000);const later=await data();assert.deepEqual([later.riftX,later.riftY,later.riftRightX,later.riftRightY],stable,'both cracks stay at the two collision points');await advance(6800);assert.equal((await data()).visitorCount,'0')
+    // Giratina also joins the common assault and leaves with the other visitors after Judgment.
+    await page.evaluate(()=>window.creationChance(0));await page.locator('#arena-creation').click();await advance(25800)
+    assert.equal((await data()).judgmentTargets,'7');assert.ok(Number((await data()).assaultPower)>.95)
+    await page.screenshot({path:'dist/giratina-seven-pet-assault.png'})
+    await advance(10800);assert.equal((await data()).palkiaShield,'true');assert.equal((await data()).dialgaShield,'true');assert.equal((await data()).giratinaShield,'true');assert.ok(Number((await data()).giratinaHit)>0)
+    await page.screenshot({path:'dist/giratina-seven-pet-judgment.png'})
+    await advance(7800);assert.equal((await data()).visitorCount,'0');assert.equal((await data()).arceusStage,'absent')
+    assert.deepEqual(errors,[])
+    console.log('PASS: native Palkia/Dialga portals, articulated hand/head charge, mouth fire clash, crescent/plasma signature collision and stable rupture, optional Arceus with six blocked attacks and six Judgment hits, Giratina ground emergence and twin-orb alliance battle, concurrent resident duels, synchronized seven-pet assault, all three Judgment shields, immediate shared departure, Rest and responsive camera/controls.')
+  }finally{await page.close()}
+}

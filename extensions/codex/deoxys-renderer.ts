@@ -17,48 +17,52 @@ export class DeoxysRenderer {
     const source=document.createElement('canvas');source.width=source.height=128; const ctx=source.getContext('2d')!
     this.textures=this.images.map(image=>{ctx.clearRect(0,0,128,128);ctx.drawImage(image,0,0,128,128,0,0,128,128);return new DeoxysTexture(ctx.getImageData(0,0,128,128).data)})
   }
-  draw(ctx:CanvasRenderingContext2D,life:DeoxysLife,groundBase=52,original=false,externalEffects=false,skillTarget?:ShotPoint):void {
-    const t=life.clock/1000, x=life.x, y=life.y, mx=life.meteorX, color=colors[life.form], floor=groundBase+132
-    const meteorOffset=life.state==='meteor'?-(1-Math.min(1,life.elapsed/1500))*42:0
-    const meteorFloor=life.state==='meteor'?-32+(floor+32)*Math.min(1,life.elapsed/1500)**2:floor
+  draw(ctx:CanvasRenderingContext2D,life:DeoxysLife,groundBase=52,original=false,externalEffects=false,skillTarget?:ShotPoint,contact=0,fright=0,presentation:{flip?:boolean;scale?:number;opacity?:number;pose?:Partial<DeoxysPose>}={}):void {
+    const t=life.clock/1000, x=life.x+contact*(5+Math.sin(life.clock*.04)*2), y=life.y-contact*3, mx=life.meteorX, color=colors[life.form], floor=life.airborneMeteor?life.meteorStopY:groundBase+132
+    const meteorOffset=life.state==='meteor'&&!life.airborneMeteor?-(1-Math.min(1,life.elapsed/life.meteorFallDuration))*42:0
+    const meteorFloor=life.airborneMeteor?life.meteorY:life.state==='meteor'?-32+(floor+32)*Math.min(1,life.elapsed/life.meteorFallDuration)**2:floor
     if(life.meteorVisible) {
-    ctx.save();ctx.translate(meteorOffset,0);if(life.state==='transform')ctx.globalAlpha=Math.min(1,(2400-life.elapsed)/500)
+    ctx.save();ctx.translate(meteorOffset,0);if(life.state==='transform')ctx.globalAlpha=Math.min(1,(life.transformDuration-life.elapsed)/Math.min(500,life.transformDuration/2))
     // Chunky meteorite with mineral seams, inset craters and a hovering psychic crystal.
     px(ctx,mx-20,meteorFloor+9,40,3,'#14121d');px(ctx,mx-16,meteorFloor-7,31,16,'#302d3e');px(ctx,mx-12,meteorFloor-16,23,23,'#51434f');px(ctx,mx-7,meteorFloor-20,13,13,'#796056')
     px(ctx,mx-12,meteorFloor-9,9,7,'#211f30');px(ctx,mx+4,meteorFloor-4,7,6,'#282338');px(ctx,mx-9,meteorFloor-15,3,7,'#b89274');px(ctx,mx+5,meteorFloor-13,2,8,color)
     px(ctx,mx-3,meteorFloor-14,7,2,color);px(ctx,mx-3,meteorFloor-12,2,9,color);px(ctx,mx-1,meteorFloor-5,5,2,'#e7deff');px(ctx,mx+2,meteorFloor-11,2,6,color)
     for(let i=0;i<4;i++) {const a=t*.7+i*Math.PI/2;px(ctx,mx+Math.cos(a)*18,meteorFloor-20+Math.sin(a)*5,2,2,color)}
     if(life.state==='meteor') {
-      const f=Math.min(1,life.elapsed/1500)
+      const f=Math.min(1,life.elapsed/life.meteorFallDuration)
       if(f<1)for(let i=12;i>0;i--){const fade=1-i/15;px(ctx,mx-i*2,meteorFloor-15-i*5,2+fade*6,4,i>6?'#795491':i>3?'#dc9ac1':'#fff2cb')}
       if(f<1){ring(ctx,mx,meteorFloor-10,13,'#ffd59b');ring(ctx,mx,meteorFloor-10,18,'#b789e5')}
       else {const impact=(life.elapsed-1500)/600;ring(ctx,mx,floor+5,9+impact*32,'#dfa1ff',.25);for(let i=0;i<10;i++){const a=i*Math.PI/5;px(ctx,mx+Math.cos(a)*impact*36,floor+3-Math.sin(impact*Math.PI)*12-Math.abs(Math.sin(a))*8,3,2,i%2?'#8d7a86':'#d8b9a1')}}
     }
     ctx.restore()
     }
-    const target=deoxysPose(life.form,life.action,life.action==='float'||life.action==='rest'?life.clock:life.elapsed)
+    const target=deoxysPose(life.form,life.action,life.action==='float'||life.action==='rest'?life.clock:life.state==='transform'?life.elapsed*2400/life.transformDuration:life.state==='touch'?life.elapsed*1700/life.touchDuration:life.elapsed)
     if(this.revision!==life.revision||this.form!==life.form){
       this.previous=this.form===life.form?this.shown:undefined
       this.shot.reset();this.revision=life.revision;this.form=life.form
     }
     const pose={...target}, amount=Math.min(1,life.elapsed/700)
     if(this.previous&&amount<1)for(const key of Object.keys(pose) as (keyof DeoxysPose)[])pose[key]=this.previous[key]+(target[key]-this.previous[key])*(amount*amount*(3-2*amount))
-    this.shown=pose
+    Object.assign(pose,presentation.pose);this.shown={...pose}
+    pose.leftArm+=fright*.07;pose.rightArm-=fright*.07;pose.head-=fright*.05;pose.y+=Math.sin(t*23)*fright
     const index=DEOXYS_FORMS.indexOf(life.form), spriteCtx=this.sprite.getContext('2d')!
     spriteCtx.clearRect(0,0,192,192)
     if(original) {const frame=Math.floor(life.clock/50)%160;spriteCtx.drawImage(this.images[index],frame%16*128,Math.floor(frame/16)*128,128,128,32,24,128,128)}
     else spriteCtx.putImageData(new ImageData(this.textures[index].render(pose),192,192),0,0)
-    if(life.action==='skill'&&life.form==='speed') for(let i=4;i>0;i--){ctx.save();ctx.globalAlpha=.08+(4-i)*.035;ctx.drawImage(this.sprite,Math.round(x-i*pose.x*.5),Math.round(y+i*3));ctx.restore()}
-    ctx.drawImage(this.sprite,Math.round(x),Math.round(y))
-    const cx=x+96+pose.x, cy=y+72+pose.y, phase=life.elapsed/6500
+    const scale=presentation.scale??1,opacity=presentation.opacity??1
+    const drawBody=()=>{ctx.save();ctx.globalAlpha*=opacity;ctx.translate(Math.round(x+96),Math.round(y+96));ctx.scale(presentation.flip?-scale:scale,scale);ctx.drawImage(this.sprite,-96,-96);ctx.restore()}
+    if(life.action==='skill'&&life.form==='speed') for(let i=4;i>0;i--){ctx.save();ctx.globalAlpha=.08+(4-i)*.035;ctx.drawImage(this.sprite,Math.round(x+96-96*scale-i*pose.x*.5),Math.round(y+96-96*scale+i*3),192*scale,192*scale);ctx.restore()}
+    drawBody()
+    if(contact>0){ctx.save();ctx.globalAlpha=contact*.55;ctx.globalCompositeOperation='screen';drawBody();ctx.restore()}
+    const cx=x+96+pose.x*scale, cy=y+96+(72+pose.y-96)*scale, phase=life.elapsed/6500
     if(original)return
     if(life.action==='rest') {px(ctx,cx+23,cy-22,6,2,'#9bcddc');px(ctx,cx+27,cy-20,2,5,'#9bcddc');px(ctx,cx+23,cy-15,6,2,'#9bcddc')}
-    if(life.state==='touch'){for(let i=0;i<10;i++){const f=i/10;px(ctx,x+153+(mx-x-153)*f,y+104+(floor-17-y-104)*f,2,2,color)}const f=Math.min(1,life.elapsed/1700);ring(ctx,mx,floor-13,7+f*9,color,.6,t);for(let i=0;i<12;i++){const a=t*3+i*.5;px(ctx,mx+Math.cos(a)*14,floor-18-i*3,2,2,color)}}
+    if(life.state==='touch'){for(let i=0;i<10;i++){const f=i/10;px(ctx,x+153+(mx-x-153)*f,y+104+(floor-17-y-104)*f,2,2,color)}const f=Math.min(1,life.elapsed/life.touchDuration);ring(ctx,mx,floor-13,7+f*9,color,.6,t);for(let i=0;i<12;i++){const a=t*3+i*.5;px(ctx,mx+Math.cos(a)*14,floor-18-i*3,2,2,color)}}
     if(life.state==='transform') {
-      const f=life.elapsed/2400, energy=Math.sin(f*Math.PI)
+      const f=life.elapsed/life.transformDuration, energy=Math.sin(f*Math.PI)
       ring(ctx,mx,floor+3,32*energy,color,.25,t);ring(ctx,cx,cy-14,45*energy,color,.55,-t)
       for(let i=0;i<30;i++){const a=i*.8+t*6;px(ctx,cx+Math.sin(a)*(20+energy*20),cy-60+i*4,2,3,i%3?'#bda7ff':'#fff4ce')}
-      ctx.save();ctx.globalAlpha=Math.max(0,1-Math.abs(f-.5)*10);ctx.globalCompositeOperation='screen';spriteCtx.save();spriteCtx.globalCompositeOperation='source-in';spriteCtx.fillStyle='#fff5ed';spriteCtx.fillRect(0,0,192,192);spriteCtx.restore();ctx.drawImage(this.sprite,Math.round(x),Math.round(y));ctx.restore()
+      ctx.save();ctx.globalAlpha=Math.max(0,1-Math.abs(f-.5)*10);ctx.globalCompositeOperation='screen';spriteCtx.save();spriteCtx.globalCompositeOperation='source-in';spriteCtx.fillStyle='#fff5ed';spriteCtx.fillRect(0,0,192,192);spriteCtx.restore();drawBody();ctx.restore()
     }
     if(externalEffects||life.action!=='skill')return
     if(life.form==='defense') {

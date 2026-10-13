@@ -1,3 +1,17 @@
+import {checkPortalParadox} from './portal-paradox-smoke.mjs'
+import {checkRider} from './rider-smoke.mjs'
+import {checkAvian} from './avian-smoke.mjs'
+import {checkLayout} from './layout-smoke.mjs'
+import {checkGalar} from './galar-smoke.mjs'
+import {checkKalos} from './kalos-smoke.mjs'
+import {checkUnova} from './unova-smoke.mjs'
+import {checkUltra} from './ultra-smoke.mjs'
+import {checkNecrozma} from './necrozma-smoke.mjs'
+import {checkSunMoon} from './sun-moon-smoke.mjs'
+import {checkAerial} from './aerial-smoke.mjs'
+import { checkCreation } from './creation-smoke.mjs'
+import { arceusFixtureBundle } from './arceus-fixture.mjs'
+import { checkArceus } from './arceus-smoke.mjs'
 // Exercises the bundled host and real Chromium webview using a minimal VS Code API harness.
 import { chromium } from 'playwright'
 import assert from 'node:assert/strict'
@@ -18,6 +32,7 @@ import { checkDeoxys } from './deoxys-smoke.mjs'
 import { checkGroudon } from './groudon-smoke.mjs'
 
 const root = resolve('.')
+const divineFixture = await arceusFixtureBundle(root)
 // Fresh clones do not contain the ignored upstream preview artifact.
 execFileSync(process.execPath, [join(root, 'tools/preview/build.mjs')], { cwd: root, stdio: 'pipe', windowsHide: true })
 const directory = await mkdtemp(join(tmpdir(), 'pixel-pet-smoke-'))
@@ -109,7 +124,11 @@ const server = createServer(async (request, response) => {
   if (/^\/deoxys-(normal|attack|defense|speed)\.png$/.test(request.url)) { response.setHeader('Content-Type','image/png'); response.end(await readFile(`extensions/codex/${request.url.slice(1).replace('.png','-128px-atlas.png')}`)) }
   else if(request.url === '/deoxys.js') {response.setHeader('Content-Type','text/javascript');response.end(await readFile('dist/deoxys.js'))}
   else if(request.url === '/deoxys') {response.setHeader('Content-Type','text/html');response.end(deoxysMarkup)}
+  else if (request.url === '/arceus-fixture.js') { response.setHeader('Content-Type','text/javascript');response.end(divineFixture) }
+  else if (request.url === '/arceus-demo') { response.setHeader('Content-Type','text/html');response.end(arenaMarkup.replace('/arena.js','/arceus-fixture.js').replace('No AI tokens','Demo')) }
   else if (request.url === '/arena') { response.setHeader('Content-Type', 'text/html'); response.end(arenaMarkup) }
+  else if (/^\/(hoopa-unbound|mega-latias|mega-latios|koraidon|miraidon|mega-heatran|terapagos-stellar|calyrex-ice-rider|calyrex-shadow-rider|ho-oh|lugia|mewtwo|mega-mewtwo-x|mega-mewtwo-y|zacian-crowned|zamazenta-crowned|eternatus|eternatus-eternamax|xerneas|yveltal|zygarde-complete|mega-zygarde-complete|reshiram|zekrom|kyurem|kyurem-white|kyurem-black|palkia|dialga|giratina|lunala|solgaleo|necrozma-normal|necrozma-dawn|necrozma-dusk|necrozma-ultra)\.png$/.test(request.url)) {response.setHeader('Content-Type','image/png');response.end(await readFile(`extensions/codex/${request.url.slice(1).replace('.png','-128px-atlas.png')}`))}
+  else if (request.url === '/arceus.png') { response.setHeader('Content-Type','image/png');response.end(await readFile('extensions/codex/arceus-128px-atlas.png')) }
   else if (request.url === '/arena.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(await readFile('dist/arena.js')) }
   else if (request.url === '/gallery.js') { response.setHeader('Content-Type', 'text/javascript'); response.end(gallery.outputFiles[0].text) }
   else if (request.url === '/gallery') { response.setHeader('Content-Type', 'text/html'); response.end('<!doctype html><style>body{background:#14171f;color:#ddd;display:grid;grid-template-columns:repeat(4,288px);gap:12px;font:16px monospace}p{text-align:center}canvas{background:#191c24}</style><script type="module" src="/gallery.js"></script>') }
@@ -129,7 +148,12 @@ const server = createServer(async (request, response) => {
 await new Promise(done => server.listen(0, '127.0.0.1', done))
 const url = `http://127.0.0.1:${server.address().port}`
 let arenaReceive,arenaVisibility,arenaLivePage
-const arenaView={visible:false,onDidChangeVisibility:handler=>{arenaVisibility=handler;return disposable()},onDidDispose:disposable,webview: { onDidReceiveMessage:handler=>{arenaReceive=handler;return disposable()},postMessage:async data=>{if(arenaLivePage)await arenaLivePage.evaluate(data=>window.dispatchEvent(new MessageEvent('message',{data})),data);return true},cspSource: url, set options(value) {}, set html(value) { arenaMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.js') ? 'arena.js' : uri.fsPath.includes('deoxys-') ? uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png') : uri.fsPath.includes('groudon') ? 'groudon.png' : uri.fsPath.includes('kyogre') ? 'kyogre.png' : 'legendary.png'}` } };arenaProvider.resolveWebviewView(arenaView)
+const arenaView={visible:false,onDidChangeVisibility:handler=>{arenaVisibility=handler;return disposable()},onDidDispose:disposable,webview: { onDidReceiveMessage:handler=>{arenaReceive=handler;return disposable()},postMessage:async data=>{
+ const target=arenaLivePage
+ if(!target||target.isClosed())return false
+ try{await target.evaluate(data=>window.dispatchEvent(new MessageEvent('message',{data})),data);return true}
+ catch(error){if(target.isClosed())return false;throw error}
+},cspSource: url, set options(value) {}, set html(value) { arenaMarkup = value }, asWebviewUri: uri => `${url}/${uri.fsPath.endsWith('.js') ? 'arena.js' : (uri.fsPath.includes('deoxys-')||uri.fsPath.includes('necrozma-')||/hoopa-unbound|mega-latias|mega-latios|koraidon|miraidon|mega-heatran|terapagos-stellar|calyrex|ho-oh|lugia|mewtwo|mega-mewtwo-x|mega-mewtwo-y|zacian-crowned|zamazenta-crowned|eternatus|eternatus-eternamax|xerneas|yveltal|zygarde-complete|mega-zygarde-complete|reshiram|zekrom|kyurem/.test(uri.fsPath)) ? uri.fsPath.split(/[\\/]/).pop().replace('-128px-atlas.png','.png') : uri.fsPath.includes('lunala') ? 'lunala.png' : uri.fsPath.includes('solgaleo') ? 'solgaleo.png' : uri.fsPath.includes('giratina') ? 'giratina.png' : uri.fsPath.includes('palkia') ? 'palkia.png' : uri.fsPath.includes('dialga') ? 'dialga.png' : uri.fsPath.includes('arceus') ? 'arceus.png' : uri.fsPath.includes('groudon') ? 'groudon.png' : uri.fsPath.includes('kyogre') ? 'kyogre.png' : 'legendary.png'}` } };arenaProvider.resolveWebviewView(arenaView)
 legendaryProvider.resolveWebviewView({ webview: {
   cspSource: url,
   set options(value) {},
@@ -159,6 +183,19 @@ try {
   const executablePath = process.env.PIXEL_PET_BROWSER || ['C:/Program Files/Google/Chrome/Application/chrome.exe', 'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe'].find(existsSync)
   browser = await chromium.launch({ executablePath, headless: true })
   await checkArena(browser, url)
+  await checkAerial(browser,url)
+  await checkPortalParadox(browser,url)
+  await checkRider(browser,url)
+  await checkAvian(browser,url)
+  await checkLayout(browser,url)
+  await checkGalar(browser,url)
+  await checkKalos(browser,url)
+  await checkUnova(browser,url)
+  await checkSunMoon(browser,url)
+  await checkNecrozma(browser,url)
+  await checkUltra(browser,url)
+  await checkArceus(browser, url)
+  await checkCreation(browser, url)
   await checkKyogre(browser,url)
   await checkDeoxys(browser,url)
   await checkGroudon(browser, url)
@@ -501,10 +538,11 @@ try {
     for (let i = 0; i < data.length; i += 4) if (data[i] === 80 && data[i + 1] === 142 && data[i + 2] === 180 && data[i + 3]) return (i / 4) % canvas.width
     return -1
   })
-  const restingAt = await bathPosition()
-  assert.ok(restingAt >= 0, 'compaction must paint the bath')
+  assert.ok(await bathPosition() >= 0, 'compaction must paint the bath')
+  const restingAt = await page.locator('#stage').getAttribute('data-main-x')
   await page.waitForTimeout(650)
-  assert.equal(await bathPosition(), restingAt, 'the pet must rest in place during compaction')
+  assert.equal(await page.locator('#stage').getAttribute('data-main-x'), restingAt, 'the pet must rest in place during compaction')
+  assert.ok(await bathPosition() >= 0, 'the animated bath stays visible while resting')
   hook('PostCompact')
   await page.waitForFunction(() => !document.querySelector('#stage').getAttribute('aria-label').endsWith(', compacting'))
   hook('Stop')
@@ -716,6 +754,7 @@ try {
   assert.deepEqual(errors, [], 'upstream preview must run without JS errors')
   console.log('PASS: independent roaming, rendezvous and 20 distinct idle interactions, automatic playlist, Feed/Play, work/approval/compaction/Rest priority, Wake, narrow layout and no host/model requests; automatic project results, concurrent workers, scene, props, hook/MCP, fallback/privacy/demo and upstream preview. Screenshots: dist/codex-*.png')
 } finally {
+  arenaLivePage=undefined
   for (const subscription of subscriptions) subscription.dispose()
   await client?.close()
   await browser?.close()

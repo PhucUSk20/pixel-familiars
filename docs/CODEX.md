@@ -201,3 +201,56 @@ In 0.19.5, fire meteors ascend and descend diagonally with matching trails. All 
 In 0.19.6, Kyogre's storm clouds and rain extend across both pets, while jagged lightning descends from above Groudon into its articulated armor position. Impact adds sparks, a local glow and recoil. Pause freezes the storm and all four pets.
 
 Legendary Arena HUD (0.19.8): the footer contains remaining context, 5-hour quota and weekly quota. Both quota rows show reset countdowns; unknown values remain unknown. It shares the existing workspace observer and selected session, and refreshes while Arena is visible even if the main Pixel Pet view is closed. Only numeric usage metadata reaches Arena. The compact CTX, 5h and Week meters share a single line. Auto, Duel and Rest buttons remain visible below them; the Pause control is removed. All Arena labels and tooltips are English.
+
+## Arceus visits
+
+Auto includes rare centered Arceus visits. Nearby residents step back gently, combine attacks against its barrier and are pushed back when the Judgment counter lands. Arceus leaves immediately after Judgment, without additional skills. Residents resume roaming after departure. Rest cancels the visit; manual Duel continues its two simultaneous battles. [Actions and GIF](ARCEUS.md).
+
+Arceus can also be called immediately with **Summon Arceus** (0.20.1). Only nearby pets step back; all four combine attacks against its invulnerable shield before Judgment pushes them back on contact. Arceus descends with orbiting elemental tablets. Summoning from Rest or Duel switches to Auto; Rest cancels the visit.
+
+## Palkia and Dialga encounters
+
+In 0.21.0, **Space / Time** summons temporary native 128px Palkia and Dialga visitors. They arrive through violet spatial cracks and a gray time fracture, clash mouth pulse against flame, then Spacial Rend against Roar of Time. Their signature explosion leaves a fixed spatial rupture. A single 35% roll can bring Arceus for six blocked attacks and six Judgment impacts before the rivals depart. Rest cancels the scene; Auto also schedules rare encounters. [Encounter and GIF](SPACE-TIME.md).
+
+### Space-time encounters (0.21.1)
+
+[Space / Time](SPACE-TIME.md) visits occur more often than standalone Arceus visits, with randomized intervals and both arrival orders. Camera expansion preserves residents' horizontal screen centres. Palkia chooses its mouth pulse or hand-charged sphere once per encounter with equal odds; its Spacial Rend has a bright crescent edge and curved wake, while Dialga charges with spiraling filaments and fires through expanding white rings. Both visitor barriers always intercept Judgment and reduce per-volley knockback from 24 to eight scene pixels. All behavior runs locally; the Demo recording forces the hand-orb and six-pet branch.
+
+## Giratina and coordinated battles (0.22.0)
+
+Space / Time randomly selects a rival duel or a Giratina alliance encounter. Resident battles continue independently. All present pets fire simultaneously at Arceus with two white shock rings per plasma stream. Palkia and Dialga both shield Judgment; Arceus and all visitors leave after the counter. [Giratina GIF and details](GIRATINA.md).
+
+Giratina improvements (0.22.1): ordinary and signature attacks meet at two separate pressure fronts. Large shadow orbs hold off the allies? signature skills before collision explosions. Giratina?s dark, violet-rimmed shield intercepts Judgment and reduces recoil to eight scene pixels per volley.
+
+Giratina silhouette aura (0.22.2): a narrow violet rim follows the moving source silhouette. The body retains its colors with a mild shadow tint; no dark circular dome remains. The aura is active on arrival, clears before attacking, and returns for Judgment. Skill contacts use fewer particles and a single compact shock ring.
+
+## Aerial finale (0.23.0)
+
+Arena scales Rayquaza to 1.1x and Deoxys to 0.9x around stable sprite centers, including their attack origins. Rayquaza stages ahead of Kyogre. Duel and Auto aerial encounters now include tentacle frenzy, Dragon Ascent overcoming an energy orb, a meteor shield, Deoxys disappearance and meteor rebirth. Original ground battles continue. Giratina emergence no longer adds artificial glowing eye orbs. [Cinematic GIF and details](AERIAL-FINALE.md).
+
+In 0.23.1, tentacle slashes are combined with the third Speed pursuit instead of a separate round. The first round uses Flamethrower against the existing Defense barrier, and the second uses two colliding energy orbs. Deoxys raises its ultimate meteor shield immediately on projectile release. Dragon Ascent shatters the orb with a bright contact explosion; rebirth uses a falling luminous star core inside nested red/purple triangular crystal rims.
+
+Creation ruptures also follow the number of signature collisions: one central crack in a Palkia/Dialga duel, or two fixed cracks on either side of Giratina in the allied encounter. Resize adjusts both cached coordinates; recoil does not drag them onto a pet.
+
+In 0.23.2, Arena meteorites stop at Deoxys chest height and trigger contact directly. Form switching still occurs only at the transformation flash midpoint. The 1.9-second sequence removes the ground approach and return flight; Auto and Duel use the same behavior. Rest clears a suspended meteorite.
+
+## Lunala and Solgaleo (0.24.2)
+
+Legendary Arena adds **Sun / Moon** for two friendly visitor rounds. Spatial cuts reveal both pets. Lunala folds its wings around pink plasma before releasing it, then projects Moongeist Beam with a full moon near the top-right sky corner. Solgaleo stands on the left, lifts its head, spreads its native mane into a star and gathers blue forehead energy under a flaming sun near the top-left sky corner, then fires a stationary mouth-origin gold/white beam. Both rounds meet at a fixed front; the pets depart after 20.7 seconds. Space/Time/Giratina and resident battles continue concurrently on separate layers, with a shared 280px sky cap when Sun/Moon is present. When Arceus appears, both join the shared assault, receive Judgment and depart. Rest cancels all encounters. [GIF and details](SUN-MOON.md).
+
+Legendary Arena adds **Necrozma** (0.25.0) for the anime-inspired Dawn Wings ? Dusk Mane ? freed hosts ? light restoration ? Ultra scene. The longer random visit can interrupt Sun / Moon; a manual summon brings both partners if needed. Rest cancels, and Arceus interrupts safely with both hosts freed. [Demo and lore](NECROZMA.md).
+
+**Summon Ultra (0.26.0)** calls Ultra directly as a boss alongside any visitors. All present pets attack its barrier before the sky counter. If Arceus arrives, Ultra joins the synchronized assault; either arrival order can occur naturally. All ten attackers receive Judgment when the full visitor roster is present, then the bosses and visitors depart. [GIFs and controls](NECROZMA.md).
+
+Legendary Arena adds **Galar Heroes** (0.29.0): Crowned Zacian and Zamazenta defend against Dynamax Cannon, face Eternamax and finish with a coordinated Behemoth Blade/Bash. Resident battles continue; the trio can join Arceus/Ultra and Rest cancels the scene. [Demo and controls](GALAR.md).
+
+Legendary Arena adds **Kalos Guardians** (0.28.0): Xerneas and Yveltal duel with light orbs and rainbow/red-violet beams. Zygarde Complete intervenes with Extreme Speed and Core Enforcer, evolves and fires a violet hexagonal cannon. The trio joins ongoing Arceus/Ultra battles; Rest cancels the scene. [Demo and controls](KALOS.md).
+
+Legendary Arena adds **Unova Dragons** (0.27.0): native Reshiram, Zekrom and Kyurem exchange fire/electric attacks, homing missiles and a charged sphere before a random White/Black absorption fusion. The absorbed host returns before departure; all three can join Arceus/Ultra encounters. Rest cancels the sequence. [Both demos and scene details](UNOVA.md).
+
+Legendary Arena 0.30.0 groups visitors into fixed tiers: Unova / Creation / Kalos in the middle, celestial / Galar above, residents below. Each group stays close; all visitors share a fixed sky extension. [Current layout](ARENA-LAYOUT.md).
+
+Arena 0.35.0 adds **Hoopa / Eon Duo** and **Koraidon / Miraidon** encounters, using five native animated pets, portal fists, mist/psychic volleys, Tera Blast, Flamethrower, Dragon Pulse and Electro Drift. Summon All includes 30 actors. [Details and Demo screenshots](PORTAL-PARADOX.md).
+
+
+Version 0.36 spaces Koraidon/Miraidon across the lower intermediate lane, lowers Ho-Oh beside Lugia, and fixes its rainbow to the arena floor.

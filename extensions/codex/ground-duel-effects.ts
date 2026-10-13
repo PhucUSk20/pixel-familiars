@@ -1,3 +1,4 @@
+import {drawPlasmaRings} from './plasma-rings'
 type Point={x:number;y:number}
 export type MeteorFrame={position:Point;stage:'rise'|'sky'|'fall'|'impact';progress:number}
 /** Each fireball leaves the mouth diagonally, travels above view, then falls over its target. */
@@ -67,6 +68,7 @@ export function drawGroundDuel(ctx:CanvasRenderingContext2D,turn:number,elapsed:
   else if(p<.85){const f=Math.min(1,(p-.4)/.14);const tip=(a:Point)=>({x:a.x+(mid.x-a.x)*f,y:a.y+(mid.y-a.y)*f})
    beam(ctx,water,tip(water),'#258ebd',9);beam(ctx,water,tip(water),'#d3ffff',3)
    beam(ctx,fire,tip(fire),'#f27838',9);beam(ctx,fire,tip(fire),'#fff0b5',3)
+   drawPlasmaRings(ctx,water,tip(water),elapsed,f);drawPlasmaRings(ctx,fire,tip(fire),elapsed,f)
    if(f===1){orb(ctx,mid,9+Math.abs(Math.sin(t*14))*6,'#fff3d1');ring(ctx,mid,21+Math.sin(t*8)*3,'#a5eaff');ring(ctx,mid,25,'#ffb36c')}
   } else if(p<.96){ring(ctx,mid,12+(p-.85)*190,'#fff0b5');for(let i=0;i<16;i++){const a=i*Math.PI/8;pixel(ctx,mid.x+Math.cos(a)*(p-.85)*250,mid.y+Math.sin(a)*(p-.85)*170,3,3,i%2?'#7cddff':'#ffb35f')}}
   return p<.4?'charge':p<.54?'projectile':p<.85?'clash':'recover'

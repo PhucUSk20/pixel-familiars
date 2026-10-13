@@ -1,0 +1,16 @@
+import assert from 'node:assert/strict'
+export async function checkRider(browser,url){
+ const page=await browser.newPage({viewport:{width:1100,height:620}}),errors=[];page.on('pageerror',e=>errors.push(String(e)))
+ await page.addInitScript(()=>{window.now=1000;window.requestAnimationFrame=cb=>{window.arenaTick=cb;return 1}})
+ const advance=ms=>page.evaluate(ms=>{for(let i=0;i<ms;i+=100)window.arenaTick(window.now+=100)},ms),data=()=>page.locator('#arena').evaluate(c=>({...c.dataset}))
+ try{
+  await page.goto(url+'/arceus-demo');await page.waitForFunction(()=>document.querySelector('#arena')?.dataset.ready==='true');await advance(100)
+  for(const mega of ['x','y']){
+   await page.locator('button[data-mode=rest]').click();await page.evaluate(mega=>window.riderScenario(mega),mega);await page.locator('#arena-rider').click();await advance(1800);let d=await data();assert.equal(d.riderCount,'4');assert.equal(d.avianCount,'0');assert.ok(Number(d.riderMewtwoX)>Number(d.terapagosX)&&Number(d.heatranX)>Number(d.riderX));assert.equal(d.extraSky,'160');
+   await page.screenshot({path:'docs/images/stellar-crystal-arrival.png'});await advance(5000);await page.screenshot({path:'docs/images/heatran-earth-power.png'});await advance(4500);assert.equal((await data()).riderFrozen,'true');await page.screenshot({path:`dist/rider-${mega}-freeze.png`});await advance(2000);assert.equal((await data()).riderStage,'lance-charge');await page.screenshot({path:'dist/rider-lance-charge.png'});await advance(2000);assert.equal((await data()).riderStage,'lance-fire');await page.screenshot({path:'docs/images/stellar-starstorm.png'});
+   await advance(12000);assert.equal((await data()).riderForm,'calyrex-shadow-rider');assert.equal((await data()).riderStage,'astral-fire');await page.screenshot({path:'docs/images/heatran-magma-storm.png'});await advance(3500);await page.screenshot({path:'docs/images/heatran-magma-pillars.png'});await advance(6000);d=await data();assert.equal(d.riderMewtwo,'mega-mewtwo-'+mega);assert.equal(d.riderStage,'mega-fire');await page.screenshot({path:`docs/images/rider-mega-${mega}.png`});await advance(7000);assert.equal((await data()).riderForm,'calyrex-ice-rider');await advance(3500);assert.equal((await data()).riderCount,'0')
+  }
+  await page.evaluate(()=>window.riderScenario('x'));await page.locator('#arena-rider').click();await advance(1500);await page.locator('#arena-summon').click();await advance(5000);assert.equal((await data()).judgmentTargets,'8');await advance(24000);assert.equal((await data()).riderCount,'0');
+  await page.locator('button[data-mode=rest]').click();await page.locator('#arena-rider').click();for(const size of [{width:240,height:350},{width:1600,height:180}]){await page.setViewportSize(size);await advance(500);assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth))}await page.locator('button[data-mode=rest]').click();assert.equal((await data()).riderCount,'0');assert.deepEqual(errors,[]);console.log('PASS: central Mewtwo/Terapagos and right-side Calyrex/Heatran duels, Ice freeze/lance/shatter, Shadow ghost field and repeated bursts, both Mega X/Y ultimates, form alternation, boss targets, Rest and responsive layout.')
+ }finally{await page.close()}
+}
